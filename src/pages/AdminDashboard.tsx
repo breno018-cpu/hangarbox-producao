@@ -37,6 +37,7 @@ import CouponsModule from "@/components/admin/CouponsModule";
 import EmailControlModule from "@/components/admin/EmailControlModule";
 import MarketingModule from "@/components/admin/MarketingModule";
 import SettingsModule from "@/components/admin/SettingsModule";
+import ThemeColorsModule from "@/components/admin/ThemeColorsModule";
 import CarouselManager from "@/components/admin/CarouselManager";
 import UsageLimitsCard from "@/components/admin/UsageLimitsCard";
 

@@ -22,6 +22,12 @@ import AccountLibrary from "./pages/account/Library";
 import Watch from "./pages/Watch";
 
 import AdminRoute from "./components/admin/AdminRoute";
+import { useThemeColors } from "./hooks/useThemeColors";
+
+const ThemeInitializer = () => {
+  useThemeColors();
+  return null;
+};
 
 const queryClient = new QueryClient();
 

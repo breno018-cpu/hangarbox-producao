@@ -1,5 +1,5 @@
-import { useState, useEffect, memo, useCallback } from "react";
-import { Star, Play, ShoppingCart, Check, Flame, ChevronDown, ChevronUp, Trophy } from "lucide-react";
+import { useState, useEffect, memo, useCallback, useRef } from "react";
+import { Star, Play, ShoppingCart, Check, Flame, ChevronDown, ChevronUp, Trophy, ChevronLeft, ChevronRight } from "lucide-react";
 import { Serie } from "@/data/series";
 import { useFadeIn } from "@/hooks/useFadeIn";
 import { useCart } from "@/contexts/CartContext";
@@ -37,8 +37,8 @@ export const SeriesCard = memo(({
     >
       {/* Top Left: Rank badge (Top 10) or Top Seller */}
       {showRank && idx < 10 ? (
-        <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1 bg-[#F59E0B] text-zinc-950 font-display font-black text-[11px] px-2.5 py-0.5 rounded-md shadow-md uppercase tracking-wider group-hover:scale-105 transition-transform">
-          <Flame size={12} className="fill-current text-zinc-950" />
+        <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1 bg-gradient-to-r from-red-600 via-rose-600 to-red-700 text-white font-display font-black text-[11px] px-2.5 py-0.5 rounded-md shadow-md uppercase tracking-wider group-hover:scale-105 transition-transform">
+          <Flame size={12} className="fill-white text-white" />
           <span>TOP {idx + 1}</span>
         </div>
       ) : topSeller ? (
@@ -107,7 +107,7 @@ export const SeriesCard = memo(({
         {/* Price & Rating line */}
         <div className="flex items-baseline justify-between pt-0.5">
           <div className="flex items-baseline gap-1">
-            <span className="text-[14px] sm:text-[15px] font-mono font-black text-emerald-400">
+            <span className="text-[14px] sm:text-[15px] font-mono font-black text-red-500 font-black">
               R$ {Number(serie.preco || 6).toFixed(2).replace(".", ",")}
             </span>
             <span className="text-[9px] font-semibold text-zinc-400 uppercase tracking-tight">
@@ -137,7 +137,7 @@ export const SeriesCard = memo(({
             aria-label={inCart ? "No carrinho" : "Adicionar ao carrinho"}
             className={`flex items-center justify-center w-8 sm:w-8.5 h-8 sm:h-8.5 flex-shrink-0 rounded-xl transition-all border cursor-pointer hover:scale-105 active:scale-95 ${
               inCart
-                ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400"
+                ? "bg-rose-500/20 border-emerald-500/40 text-red-500 font-black"
                 : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800 hover:border-zinc-700"
             }`}
           >
@@ -203,10 +203,10 @@ const SeriesListItem = memo(({
         <p className="text-xs md:text-sm text-muted-foreground/80 mt-1.5 leading-relaxed line-clamp-2 md:line-clamp-3">{serie.resumo}</p>
 
         <div className="mt-auto pt-2.5 flex items-center gap-2">
-          <span className="text-sm md:text-[15px] font-body font-bold text-primary">R$ {serie.preco.toFixed(2).replace(".", ",")}</span>
+          <span className="text-sm md:text-[15px] font-body font-black text-red-500">R$ {serie.preco.toFixed(2).replace(".", ",")}</span>
           <button
             onClick={() => onBuy?.(serie)}
-            className="ml-auto flex items-center justify-center gap-1 px-3.5 h-8 bg-primary text-primary-foreground text-[11px] md:text-xs font-body font-bold rounded-full hover:bg-primary/85 transition-colors"
+            className="ml-auto flex items-center justify-center gap-1 px-3.5 h-8 bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:brightness-110 text-white text-[11px] md:text-xs font-body font-bold rounded-full transition-colors"
           >
             <Play size={11} fill="currentColor" /> Garantir Acesso
           </button>
@@ -231,6 +231,104 @@ SeriesListItem.displayName = "SeriesListItem";
 
 
 
+
+interface Top10CarouselProps {
+  series: Serie[];
+  isMobile: boolean;
+  getGlowColor: (cat?: string[]) => string;
+  onSelect: (s: Serie) => void;
+  onBuy?: (s: Serie) => void;
+}
+
+const Top10Carousel = ({ series, isMobile, getGlowColor, onSelect, onBuy }: Top10CarouselProps) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isInteracting = useRef(false);
+  const resumeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const scrollBy = (offset: number) => {
+    if (!containerRef.current) return;
+    containerRef.current.scrollBy({ left: offset, behavior: 'smooth' });
+  };
+
+  const handleTouchStart = () => {
+    isInteracting.current = true;
+    if (resumeTimer.current) clearTimeout(resumeTimer.current);
+  };
+
+  const handleTouchEnd = () => {
+    if (resumeTimer.current) clearTimeout(resumeTimer.current);
+    resumeTimer.current = setTimeout(() => {
+      isInteracting.current = false;
+    }, 3500);
+  };
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const interval = setInterval(() => {
+      if (isInteracting.current || document.hidden) return;
+      const cardWidth = isMobile ? 180 : 220;
+      const maxScroll = el.scrollWidth - el.clientWidth;
+      if (el.scrollLeft >= maxScroll - 10) {
+        el.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        el.scrollBy({ left: cardWidth, behavior: 'smooth' });
+      }
+    }, 3500);
+
+    return () => clearInterval(interval);
+  }, [isMobile]);
+
+  return (
+    <div className="relative group/carousel">
+      <button
+        type="button"
+        onClick={() => { handleTouchStart(); scrollBy(isMobile ? -180 : -220); handleTouchEnd(); }}
+        aria-label="Anterior"
+        className="absolute -left-3 top-1/2 -translate-y-1/2 z-30 w-8 h-8 rounded-full bg-black/80 border border-rose-500/30 text-white flex items-center justify-center hover:bg-rose-600 transition-all shadow-lg opacity-80 hover:opacity-100 cursor-pointer"
+      >
+        <ChevronLeft size={16} />
+      </button>
+
+      <button
+        type="button"
+        onClick={() => { handleTouchStart(); scrollBy(isMobile ? 180 : 220); handleTouchEnd(); }}
+        aria-label="Próximo"
+        className="absolute -right-3 top-1/2 -translate-y-1/2 z-30 w-8 h-8 rounded-full bg-black/80 border border-rose-500/30 text-white flex items-center justify-center hover:bg-rose-600 transition-all shadow-lg opacity-80 hover:opacity-100 cursor-pointer"
+      >
+        <ChevronRight size={16} />
+      </button>
+
+      <div
+        ref={containerRef}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onMouseEnter={handleTouchStart}
+        onMouseLeave={handleTouchEnd}
+        className="overflow-x-auto scrollbar-hide -mx-2 px-2 pb-2 snap-x snap-mandatory touch-pan-x overscroll-x-contain"
+        style={{ scrollBehavior: 'smooth' }}
+      >
+        <div className="flex gap-4 sm:gap-5 w-max">
+          {series.slice(0, 10).map((serie, idx) => (
+            <div key={serie.id} className="w-[165px] sm:w-[195px] md:w-[215px] flex-shrink-0 snap-start">
+              <SeriesCard
+                serie={serie}
+                idx={idx}
+                showRank={true}
+                layoutMode="horizontal"
+                isMobile={isMobile}
+                glowHSL={getGlowColor(serie.categoria)}
+                onSelect={onSelect}
+                onBuy={onBuy}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const SeriesRow = memo(({ title, series, onSelect, onBuy, showRank = false, layoutMode = "vertical" }: SeriesRowProps) => {
   const fadeRef = useFadeIn();

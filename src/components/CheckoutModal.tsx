@@ -344,7 +344,7 @@ const CheckoutModal = ({ items, totalPrice, onClose, onSuccess, appliedCoupon, d
                 )}
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-body text-muted-foreground">Total</span>
-                  <span className="text-2xl font-display text-primary">R$ {finalPrice.toFixed(2).replace(".", ",")}</span>
+                  <span className="text-2xl font-display font-black text-red-500">R$ {finalPrice.toFixed(2).replace(".", ",")}</span>
                 </div>
               </div>
 
@@ -457,7 +457,7 @@ const CheckoutModal = ({ items, totalPrice, onClose, onSuccess, appliedCoupon, d
               )}
 
               <Button onClick={pixExpired ? handleRegeneratePixCode : handleConfirmPayment} disabled={confirming || checkingPayment}
-                className="w-full bg-success hover:bg-success/90 text-success-foreground font-body font-semibold rounded-lg py-6 transition-all">
+                className="w-full bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:brightness-110 text-white font-body font-bold rounded-xl py-6 transition-all shadow-lg cursor-pointer">
                 {confirming || checkingPayment ? (
                   <span className="flex items-center gap-2">
                     <Loader2 size={16} className="animate-spin" />
@@ -470,7 +470,7 @@ const CheckoutModal = ({ items, totalPrice, onClose, onSuccess, appliedCoupon, d
                     ) : orderId ? (
                       <><ShieldCheck size={18} /> Já paguei — Verificar pagamento</>
                     ) : (
-                      <><QrCode size={18} /> Gerar QR Code PIX</>
+                      <><QrCode size={18} /> GARANTIR ACESSO VIA PIX</>
                     )}
                   </>
                 )}

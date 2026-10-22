@@ -89,7 +89,7 @@ const CartPage = ({ onClose, onCheckout }: CartPageProps) => {
                     <h4 className="font-body font-semibold text-foreground text-sm md:text-base truncate">{item.serie.titulo}</h4>
                     <p className="text-[10px] md:text-xs font-body text-muted-foreground mt-0.5 line-clamp-1">{item.serie.resumo}</p>
                   </div>
-                  <p className="text-sm md:text-lg font-display text-primary whitespace-nowrap">R$ {item.serie.preco.toFixed(2).replace(".", ",")}</p>
+                  <p className="text-sm md:text-lg font-display font-black text-red-500 whitespace-nowrap">R$ {item.serie.preco.toFixed(2).replace(".", ",")}</p>
                   <button
                     onClick={() => removeFromCart(item.serie.id)}
                     className="p-1.5 text-muted-foreground hover:text-destructive transition-colors md:opacity-0 md:group-hover:opacity-100"
@@ -162,14 +162,14 @@ const CartPage = ({ onClose, onCheckout }: CartPageProps) => {
                 )}
                 <div className="border-t border-border/10 pt-2 md:pt-3 flex items-center justify-between">
                   <span className="text-xs md:text-sm font-body font-semibold text-foreground">Total</span>
-                  <span className="text-xl md:text-2xl font-display text-primary">R$ {finalPrice.toFixed(2).replace(".", ",")}</span>
+                  <span className="text-xl md:text-2xl font-display font-black text-red-500">R$ {finalPrice.toFixed(2).replace(".", ",")}</span>
                 </div>
               </div>
               <Button
                 onClick={() => onCheckout(appliedCoupon || undefined, discount)}
-                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-body font-semibold py-5 md:py-6 rounded-lg transition-all hover:scale-[1.01] text-xs md:text-sm"
+                className="w-full bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:brightness-110 text-white font-body font-bold py-5 md:py-6 rounded-xl transition-all hover:scale-[1.01] text-xs md:text-sm shadow-lg cursor-pointer"
               >
-                Finalizar Compra
+                GARANTIR ACESSO
               </Button>
               <p className="text-center text-[9px] md:text-[10px] font-body text-muted-foreground/50 mt-2 md:mt-3">
                 Pagamento seguro • Acesso imediato

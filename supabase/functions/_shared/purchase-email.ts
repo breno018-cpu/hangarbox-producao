@@ -33,7 +33,16 @@ export async function sendPurchaseEmailOnce(supabase: any, orderId: string) {
 
   let status = 'enviado'
   try {
-    const resendKey = Deno.env.get('RESEND_API_KEY')
+    let resendKey = Deno.env.get('RESEND_API_KEY')
+    if (!resendKey) {
+      try {
+        const { data: ss } = await supabase.from('site_settings').select('value').eq('key', 'resend_api_key').maybeSingle()
+        if (ss?.value) resendKey = ss.value
+      } catch {
+        // Ignora erro se tabela não existir
+      }
+    }
+
     const data = { name: order.user_name, orderId: order.id, total: Number(order.total), items }
     if (resendKey) {
       await sendViaResend(resendKey, order.user_email, data, `purchase-confirmation-${order.id}`)

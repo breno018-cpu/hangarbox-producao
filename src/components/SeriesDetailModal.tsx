@@ -221,7 +221,7 @@ const SeriesDetailModal = ({ serie, onClose, onBuy }: SeriesDetailModalProps) =>
                 </div>
 
                 <div className="text-right">
-                  <div className="text-2xl sm:text-3xl font-black text-emerald-400 font-mono tracking-tight">
+                  <div className="text-2xl sm:text-3xl font-black text-red-500 font-mono font-black tracking-tight">
                     R$ {Number(serie.preco || 6).toFixed(2).replace(".", ",")}
                   </div>
                   <span className="text-[10px] uppercase font-bold text-zinc-400">
@@ -247,12 +247,12 @@ const SeriesDetailModal = ({ serie, onClose, onBuy }: SeriesDetailModalProps) =>
                   disabled={inCart}
                   className={`rounded-xl h-12 px-4 transition-all border ${
                     inCart
-                      ? "border-emerald-500/40 text-emerald-400 bg-emerald-500/10"
+                      ? "border-rose-500/40 text-rose-400 bg-rose-500/10"
                       : "border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800 bg-zinc-950"
                   }`}
                 >
                   {inCart ? (
-                    <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
+                    <span className="flex items-center gap-1.5 text-xs font-bold text-rose-400">
                       <Check size={16} /> No Carrinho
                     </span>
                   ) : (

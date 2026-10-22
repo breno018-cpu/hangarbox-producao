@@ -304,7 +304,7 @@ const container: React.CSSProperties = {
 const header: React.CSSProperties = {
   backgroundColor: '#09090b',
   padding: '20px',
-  borderBottom: '2px solid #7B3FE4',
+  borderBottom: '2px solid #E31C25',
   width: '100%',
   boxSizing: 'border-box' as const,
 }
@@ -318,7 +318,7 @@ const brand: React.CSSProperties = {
 }
 
 const brandAccent: React.CSSProperties = {
-  color: '#7B3FE4',
+  color: '#E31C25',
 }
 
 const brandSub: React.CSSProperties = {
@@ -330,11 +330,11 @@ const brandSub: React.CSSProperties = {
 
 const statusBadge: React.CSSProperties = {
   display: 'inline-block',
-  backgroundColor: 'rgba(16, 185, 129, 0.15)',
-  border: '1px solid rgba(16, 185, 129, 0.4)',
+  backgroundColor: 'rgba(227, 28, 37, 0.15)',
+  border: '1px solid rgba(227, 28, 37, 0.4)',
   borderRadius: '20px',
   padding: '5px 10px',
-  color: '#34d399',
+  color: '#f87171',
   fontSize: '10px',
   fontWeight: 800,
   letterSpacing: '0.5px',
@@ -342,7 +342,7 @@ const statusBadge: React.CSSProperties = {
 }
 
 const statusDot: React.CSSProperties = {
-  color: '#10b981',
+  color: '#ef4444',
   marginRight: '3px',
 }
 
@@ -423,7 +423,7 @@ const tableValueBreak: React.CSSProperties = {
 }
 
 const tableValueMono: React.CSSProperties = {
-  color: '#7B3FE4',
+  color: '#E31C25',
   fontFamily: 'monospace',
   fontWeight: 700,
   textAlign: 'right',
@@ -432,7 +432,7 @@ const tableValueMono: React.CSSProperties = {
 }
 
 const tableValueGreen: React.CSSProperties = {
-  color: '#059669',
+  color: '#ef4444',
   fontWeight: 700,
   textAlign: 'right',
   padding: '3px 0',
@@ -448,7 +448,7 @@ const tableLabelBold: React.CSSProperties = {
 }
 
 const tableValueBold: React.CSSProperties = {
-  color: '#7B3FE4',
+  color: '#E31C25',
   fontWeight: 900,
   fontSize: '15px',
   textAlign: 'right',
@@ -469,7 +469,7 @@ const itemCard: React.CSSProperties = {
 const cardItemBadge: React.CSSProperties = {
   fontSize: '9px',
   fontWeight: 800,
-  color: '#7B3FE4',
+  color: '#E31C25',
   letterSpacing: '0.5px',
   marginBottom: '4px',
 }
@@ -489,7 +489,7 @@ const cardItemPrice: React.CSSProperties = {
 }
 
 const primaryButton: React.CSSProperties = {
-  backgroundColor: '#7B3FE4',
+  backgroundColor: '#E31C25',
   color: '#ffffff',
   fontSize: '12px',
   fontWeight: 800,
@@ -513,16 +513,16 @@ const guideBox: React.CSSProperties = {
   width: '100%',
   boxSizing: 'border-box' as const,
   padding: '14px 16px',
-  backgroundColor: '#faf5ff',
+  backgroundColor: '#18181b',
   borderRadius: '14px',
-  border: '1px solid #e9d5ff',
+  border: '1px solid #27272a',
   margin: '14px 0',
 }
 
 const guideHeading: React.CSSProperties = {
   fontSize: '13px',
   fontWeight: 800,
-  color: '#6b21a8',
+  color: '#ef4444',
   margin: '0 0 8px 0',
 }
 
@@ -535,7 +535,7 @@ const guideBullet: React.CSSProperties = {
 
 const guideText: React.CSSProperties = {
   fontSize: '11px',
-  color: '#4c1d95',
+  color: '#f87171',
   lineHeight: '16px',
   paddingBottom: '6px',
 }
@@ -615,7 +615,7 @@ const relatedTitle: React.CSSProperties = {
 
 const relatedPrice: React.CSSProperties = {
   fontSize: '11px',
-  color: '#059669',
+  color: '#ef4444',
   fontWeight: 700,
   margin: '0',
 }
@@ -703,7 +703,7 @@ const footerLinks: React.CSSProperties = {
 }
 
 const footerLink: React.CSSProperties = {
-  color: '#c084fc',
+  color: '#ef4444',
   textDecoration: 'none',
 }
 

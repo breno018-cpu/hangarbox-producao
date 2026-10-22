@@ -243,7 +243,7 @@ const Header = memo(({ onSearch, onOpenCart, onCheckout, onCategoryChange, activ
                               <p className="text-xs font-body font-bold text-white truncate group-hover:text-primary transition-colors">
                                 {item.serie.titulo}
                               </p>
-                              <p className="text-[11px] font-mono font-black text-emerald-400 mt-0.5">
+                              <p className="text-[11px] font-mono font-black text-red-500 mt-0.5">
                                 R$ {item.serie.preco.toFixed(2).replace(".", ",")}
                               </p>
                             </div>
@@ -262,7 +262,7 @@ const Header = memo(({ onSearch, onOpenCart, onCheckout, onCategoryChange, activ
                       <div className="border-t border-white/10 pt-3 space-y-3">
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-body text-zinc-400">Total:</span>
-                          <span className="text-base font-mono font-black text-emerald-400">
+                          <span className="text-base font-mono font-black text-red-500">
                             R$ {totalPrice.toFixed(2).replace(".", ",")}
                           </span>
                         </div>

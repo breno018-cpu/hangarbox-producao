@@ -128,8 +128,8 @@ const HeroCarousel = memo(({ series, onDetails, onBuy }: HeroCarouselProps) => {
                   DUBLADO
                 </span>
 
-                <span className="text-emerald-400 flex items-center gap-1 font-bold text-xs sm:text-sm">
-                  <Check size={14} className="text-emerald-400 stroke-[3]" /> Episódios Completos
+                <span className="text-red-500 flex items-center gap-1 font-bold text-xs sm:text-sm">
+                  <Check size={14} className="text-red-500 stroke-[3]" /> Episódios Completos
                 </span>
               </motion.div>
 
@@ -148,7 +148,7 @@ const HeroCarousel = memo(({ series, onDetails, onBuy }: HeroCarouselProps) => {
                 className="flex flex-wrap items-center gap-3 sm:gap-5 mt-5 sm:mt-6"
               >
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl sm:text-3xl font-black text-emerald-400 font-mono tracking-tight">
+                  <span className="text-2xl sm:text-3xl font-black text-red-500 font-mono tracking-tight">
                     R$ {Number(s.preco || 6).toFixed(2)}
                   </span>
                   <span className="text-[10px] sm:text-xs font-bold text-zinc-400 uppercase tracking-wider">
@@ -159,7 +159,7 @@ const HeroCarousel = memo(({ series, onDetails, onBuy }: HeroCarouselProps) => {
                 <div className="flex items-center gap-2 sm:gap-3">
                   <Button
                     onClick={() => onBuy(s)}
-                    className="bg-[#F59E0B] hover:bg-[#D97706] text-zinc-950 font-display font-black text-xs sm:text-sm uppercase tracking-wider px-6 sm:px-8 h-11 sm:h-12 rounded-xl shadow-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+                    className="bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:brightness-110 text-white font-display font-black text-xs sm:text-sm uppercase tracking-wider px-6 sm:px-8 h-11 sm:h-12 rounded-xl shadow-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
                   >
                     GARANTIR ACESSO
                   </Button>
