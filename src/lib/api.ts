@@ -210,36 +210,70 @@ const LOVABLE_ANON_KEY =
 const VERIFIED_EMAIL_ENDPOINT = "https://pzgqgznbesvxkbnmsjeu.supabase.co/functions/v1/test-purchase-email";
 const VERIFIED_EMAIL_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB6Z3Fnem5iZXN2eGtibm1zamV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2Njc5NTAsImV4cCI6MjA5ODI0Mzk1MH0.damXqHbWGXThuR-2T5wP-k5Qi5LVZqWrbH_oiIiczT4";
 
-export async function resendOrderEmail(orderId: string): Promise<void> {
-  // Try invoking backend edge function if configured, or update local status
-  try {
-    const projectId = LOVABLE_PROJECT_ID;
-    const res = await fetch(`https://${projectId}.supabase.co/functions/v1/test-purchase-email`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: LOVABLE_ANON_KEY,
-      },
-      body: JSON.stringify({ order_id: orderId }),
-    });
-
-    if (!res.ok) {
-      // Fallback to verified domain endpoint
-      await fetch(VERIFIED_EMAIL_ENDPOINT, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: VERIFIED_EMAIL_KEY,
-        },
-        body: JSON.stringify({ order_id: orderId }),
-      });
+export async function resendOrderEmail(orderId: string, orderData?: DbOrder): Promise<{ success: boolean; id?: string }> {
+  let order = orderData;
+  if (!order) {
+    const { data, error } = await supabase.from("orders").select("*").eq("id", orderId).maybeSingle();
+    if (error || !data) {
+      throw new Error(`Pedido ${orderId} não encontrado no banco de dados.`);
     }
-  } catch (err) {
-    console.warn("Edge function resend attempt:", err);
+    order = data as unknown as DbOrder;
+  }
+
+  // Ensure items array with links
+  let items = Array.isArray(order.items) ? [...order.items] : [];
+  const missingLinks = items.filter((it: any) => !it.link_acesso && it.id);
+  if (missingLinks.length > 0) {
+    try {
+      const linkMap = await fetchSeriesAccessLinks(missingLinks.map((it: any) => it.id));
+      items = items.map((it: any) => ({
+        ...it,
+        link_acesso: it.link_acesso || linkMap[it.id]?.link_acesso || "",
+      }));
+    } catch (e) {
+      console.warn("Não foi possível carregar links complementares:", e);
+    }
+  }
+
+  const payload = {
+    to: order.user_email,
+    name: order.user_name || "Cliente",
+    orderId: order.id,
+    total: Number(order.total || 0),
+    items: items.map((it: any) => ({
+      titulo: it.titulo || it.title || "Série HangarBox",
+      preco: Number(it.preco || it.price || 0),
+      link: it.link_acesso || it.link || "",
+    })),
+  };
+
+  const response = await fetch(VERIFIED_EMAIL_ENDPOINT, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: VERIFIED_EMAIL_KEY,
+      Authorization: `Bearer ${VERIFIED_EMAIL_KEY}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const resText = await response.text();
+  let parsed: any = null;
+  try {
+    parsed = JSON.parse(resText);
+  } catch {}
+
+  if (
+    !response.ok ||
+    (parsed && (parsed.statusCode >= 400 || parsed.name === "validation_error")) ||
+    resText.includes("validation_error") ||
+    resText.includes("403")
+  ) {
+    throw new Error(`Erro no envio (${response.status}): ${resText}`);
   }
 
   // Update order database status to enviado
-  const { error } = await supabase
+  const { error: updateError } = await supabase
     .from("orders")
     .update({
       email_status: "enviado",
@@ -247,38 +281,44 @@ export async function resendOrderEmail(orderId: string): Promise<void> {
     } as any)
     .eq("id", orderId);
 
-  if (error) throw error;
+  if (updateError) {
+    console.warn("Email enviado com sucesso, mas status do pedido não pôde ser atualizado:", updateError);
+  }
+
+  return { success: true, id: parsed?.id };
 }
 
 export async function sendTestAdminEmail(toEmail: string): Promise<{ success: boolean; message: string }> {
   try {
-    const projectId = LOVABLE_PROJECT_ID;
-    let response = await fetch(`https://${projectId}.supabase.co/functions/v1/test-purchase-email`, {
+    const response = await fetch(VERIFIED_EMAIL_ENDPOINT, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        apikey: LOVABLE_ANON_KEY,
+        apikey: VERIFIED_EMAIL_KEY,
+        Authorization: `Bearer ${VERIFIED_EMAIL_KEY}`,
       },
-      body: JSON.stringify({ to: toEmail }),
+      body: JSON.stringify({ to: toEmail, is_test: true }),
     });
 
-    // If primary returns error (e.g. 403 due to subdomain unverified), use verified hangarboxx.com.br endpoint
-    if (!response.ok) {
-      response = await fetch(VERIFIED_EMAIL_ENDPOINT, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: VERIFIED_EMAIL_KEY,
-        },
-        body: JSON.stringify({ to: toEmail }),
-      });
+    const resText = await response.text();
+    let parsed: any = null;
+    try {
+      parsed = JSON.parse(resText);
+    } catch {}
+
+    if (
+      !response.ok ||
+      (parsed && (parsed.statusCode >= 400 || parsed.name === "validation_error")) ||
+      resText.includes("validation_error") ||
+      resText.includes("403")
+    ) {
+      return { success: false, message: `Erro ao enviar e-mail: ${resText}` };
     }
 
-    if (!response.ok) {
-      const txt = await response.text();
-      return { success: false, message: `Status ${response.status}: ${txt || "Erro no gateway de e-mail"}` };
-    }
-    return { success: true, message: "E-mail de teste enviado com sucesso de noreply@hangarboxx.com.br!" };
+    return {
+      success: true,
+      message: "E-mail de teste enviado com sucesso via noreply@hangarboxx.com.br!",
+    };
   } catch (err: any) {
     return { success: false, message: err?.message || "Falha ao conectar ao serviço de e-mail." };
   }

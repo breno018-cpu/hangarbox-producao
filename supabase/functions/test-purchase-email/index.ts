@@ -2,9 +2,6 @@ import * as React from 'npm:react@18.3.1'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { template } from '../_shared/transactional-email-templates/purchase-confirmation.tsx'
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { sendPurchaseEmailOnce } from '../_shared/purchase-email.ts'
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -30,37 +27,7 @@ Deno.serve(async (req) => {
     body = {}
   }
 
-  // 1. Se for reenvio de um pedido real (via painel administrativo)
-  if (body?.order_id) {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    if (supabaseUrl && serviceRoleKey) {
-      const supabase = createClient(supabaseUrl, serviceRoleKey)
-      // Carrega o pedido para validação estrita
-      const { data: order, error } = await supabase
-        .from('orders')
-        .select('id, status, user_email')
-        .eq('id', body.order_id)
-        .maybeSingle()
-
-      if (error || !order) {
-        return new Response(JSON.stringify({ error: 'Pedido não localizado' }), {
-          status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
-      }
-
-      // Garante envio seguro exclusivamente para o e-mail registrado na compra
-      await sendPurchaseEmailOnce(supabase, String(body.order_id))
-      return new Response(
-        JSON.stringify({ success: true, message: `E-mail reenviado com segurança para ${order.user_email}` }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-  }
-
-  // 2. Se for disparo de teste de layout administrativo
-  let toEmail = (body?.to || 'laurentinobreno08@gmail.com').toString().trim().toLowerCase()
+  let toEmail = (body?.to || body?.user_email || 'laurentinobreno08@gmail.com').toString().trim().toLowerCase()
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   if (!emailRegex.test(toEmail)) {
     return new Response(JSON.stringify({ error: 'Endereço de e-mail inválido' }), {
@@ -69,8 +36,26 @@ Deno.serve(async (req) => {
     })
   }
 
+  const isTest = body?.is_test === true || (!body?.items && !body?.order_id && !body?.orderId)
+  const subject = isTest ? ('[TESTE] ' + template.subject) : template.subject
+
+  const orderData = body?.items
+    ? {
+        name: body.name || body.user_name || 'Cliente',
+        orderId: body.orderId || body.order_id || 'HB-CONFIRMADO',
+        total: Number(body.total || 0),
+        items: Array.isArray(body.items)
+          ? body.items.map((it: any) => ({
+              titulo: it.titulo || it.title || 'Série',
+              preco: Number(it.preco || it.price || 0),
+              link: it.link || it.link_acesso || '',
+            }))
+          : [],
+      }
+    : template.previewData
+
   const fromEmail = Deno.env.get('RESEND_FROM') || 'HangarBox <noreply@hangarboxx.com.br>'
-  const html = await renderAsync(React.createElement(template.component, template.previewData))
+  const html = await renderAsync(React.createElement(template.component, orderData))
 
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -78,13 +63,13 @@ Deno.serve(async (req) => {
     body: JSON.stringify({
       from: fromEmail,
       to: [toEmail],
-      subject: '[TESTE] ' + template.subject,
+      subject,
       html,
     }),
   })
 
   const resText = await res.text()
-  return new Response(`${res.status} ${resText}`, {
+  return new Response(resText, {
     status: res.status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })

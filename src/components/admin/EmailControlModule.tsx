@@ -89,10 +89,92 @@ export const EmailControlModule: React.FC<EmailControlModuleProps> = ({
   const [testEmailRecipient, setTestEmailRecipient] = useState("");
   const [sendingTest, setSendingTest] = useState(false);
 
+  // Batch Resend Since 18/10 Modal
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+  const [batchMode, setBatchMode] = useState<"pending" | "all">("pending");
+  const [isBatchRunning, setIsBatchRunning] = useState(false);
+  const [batchProgress, setBatchProgress] = useState<{ current: number; total: number; currentEmail?: string }>({ current: 0, total: 0 });
+  const [batchLogs, setBatchLogs] = useState<{ id: string; email: string; success: boolean; message: string }[]>([]);
+
   // Copied link state
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
 
   // Filtered orders list
+  // Vendas desde 18/10/2026
+  const ordersSince18 = useMemo(() => {
+    return orders.filter((o) => {
+      if (o.status !== "pago") return false;
+      const d = o.created_at || o.updated_at;
+      if (!d) return false;
+      return d >= "2026-10-18T00:00:00" || d.includes("2026-10-18") || d.includes("2026-10-19") || d.includes("2026-10-20") || d.includes("2026-10-21") || d.includes("2026-10-22");
+    });
+  }, [orders]);
+
+  const pendingSince18 = useMemo(() => {
+    return ordersSince18.filter((o) => !o.email_sent_at || o.email_status !== "enviado");
+  }, [ordersSince18]);
+
+  const batchTargetOrders = batchMode === "pending" ? pendingSince18 : ordersSince18;
+
+  const handleStartBatchResend = async () => {
+    if (batchTargetOrders.length === 0) {
+      toast.info("Nenhum pedido selecionado para reenvio.");
+      return;
+    }
+
+    setIsBatchRunning(true);
+    setBatchLogs([]);
+    setBatchProgress({ current: 0, total: batchTargetOrders.length });
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (let i = 0; i < batchTargetOrders.length; i++) {
+      const order = batchTargetOrders[i];
+      setBatchProgress({
+        current: i + 1,
+        total: batchTargetOrders.length,
+        currentEmail: order.user_email,
+      });
+
+      try {
+        await resendOrderEmail(order.id, order);
+        successCount++;
+        setBatchLogs((prev) => [
+          ...prev,
+          {
+            id: order.id,
+            email: order.user_email,
+            success: true,
+            message: "Enviado com sucesso via noreply@hangarboxx.com.br",
+          },
+        ]);
+      } catch (err: any) {
+        failCount++;
+        setBatchLogs((prev) => [
+          ...prev,
+          {
+            id: order.id,
+            email: order.user_email,
+            success: false,
+            message: err?.message || "Falha no envio",
+          },
+        ]);
+      }
+
+      await new Promise((r) => setTimeout(r, 600));
+    }
+
+    setIsBatchRunning(false);
+    if (successCount > 0) {
+      toast.success(`${successCount} e-mail(s) de confirmação reenviado(s) com sucesso!`);
+      if (onRefreshOrders) onRefreshOrders();
+    }
+    if (failCount > 0) {
+      toast.error(`${failCount} e-mail(s) apresentaram instabilidade no envio.`);
+    }
+  };
+
   const filteredOrders = useMemo(() => {
     const now = new Date();
     const todayStr = now.toISOString().slice(0, 10);
@@ -336,6 +418,36 @@ export const EmailControlModule: React.FC<EmailControlModuleProps> = ({
         </div>
       )}
 
+      {/* Pending Since 18/10 Alert Banner */}
+      {pendingSince18.length > 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0">
+              <AlertTriangle size={18} />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-amber-500">
+                Atenção: {pendingSince18.length} {pendingSince18.length === 1 ? "venda paga" : "vendas pagas"} desde 18/10 com e-mail pendente ou não confirmado!
+              </p>
+              <p className="text-[11px] text-zinc-400 mt-0.5">
+                Clique no botão ao lado para encaminhar os links de acesso automaticamente para os clientes via noreply@hangarboxx.com.br.
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => {
+              setBatchMode("pending");
+              setIsBatchModalOpen(true);
+            }}
+            className="h-8 bg-amber-500 hover:bg-amber-600 text-black text-xs font-bold px-3.5 rounded-xl shrink-0 gap-1.5 shadow-xs"
+          >
+            <RotateCw size={13} />
+            <span>Reenviar Agora ({pendingSince18.length})</span>
+          </Button>
+        </div>
+      )}
+
       {/* 1. Header Banner & Actions */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white border border-zinc-200/90 p-5 rounded-2xl shadow-xs">
         <div>
@@ -363,6 +475,21 @@ export const EmailControlModule: React.FC<EmailControlModuleProps> = ({
           >
             <Download size={13} className="text-zinc-500" />
             <span className="hidden sm:inline">Exportar Relatório</span>
+          </Button>
+
+          {/* Batch Resend Since 18/10 */}
+          <Button
+            size="sm"
+            onClick={() => setIsBatchModalOpen(true)}
+            className="h-9 bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:brightness-110 text-white text-xs font-bold px-3.5 gap-1.5 rounded-xl shadow-xs transition-all relative"
+          >
+            <RotateCw size={13} className={isBatchRunning ? "animate-spin" : ""} />
+            <span>Reenviar Vendas (Desde 18/10)</span>
+            {pendingSince18.length > 0 && (
+              <span className="ml-1 px-1.5 py-0.5 bg-white text-red-700 text-[10px] font-black rounded-full leading-none">
+                {pendingSince18.length}
+              </span>
+            )}
           </Button>
 
           {/* Test Email Button */}
@@ -1041,6 +1168,160 @@ export const EmailControlModule: React.FC<EmailControlModuleProps> = ({
                 <span>Reenviar Agora</span>
               </Button>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal: Batch Resend Since 18/10 */}
+      <Dialog open={isBatchModalOpen} onOpenChange={setIsBatchModalOpen}>
+        <DialogContent className="bg-[#09090b] border-zinc-800 text-zinc-100 max-w-xl rounded-3xl shadow-2xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500">
+                <RotateCw size={16} className={isBatchRunning ? "animate-spin" : ""} />
+              </div>
+              <span>Reenvio de E-mails — Vendas Desde 18/10</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-zinc-400 mt-1">
+              Encaminhe em lote os e-mails de confirmação de compra e links de acesso das séries usando o remetente oficial verificado <strong>noreply@hangarboxx.com.br</strong>.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2 text-xs">
+            {/* Mode Selector */}
+            <div className="grid grid-cols-2 gap-2 p-1 bg-zinc-900 border border-zinc-800 rounded-2xl">
+              <button
+                type="button"
+                disabled={isBatchRunning}
+                onClick={() => setBatchMode("pending")}
+                className={`py-2 px-3 rounded-xl font-bold text-xs transition-all ${
+                  batchMode === "pending"
+                    ? "bg-red-600 text-white shadow-sm"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                Apenas Pendentes ({pendingSince18.length})
+              </button>
+              <button
+                type="button"
+                disabled={isBatchRunning}
+                onClick={() => setBatchMode("all")}
+                className={`py-2 px-3 rounded-xl font-bold text-xs transition-all ${
+                  batchMode === "all"
+                    ? "bg-red-600 text-white shadow-sm"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                Todos desde 18/10 ({ordersSince18.length})
+              </button>
+            </div>
+
+            {/* Progress bar if running */}
+            {isBatchRunning && (
+              <div className="space-y-2 p-3 bg-zinc-900/80 border border-zinc-800 rounded-2xl">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-zinc-300 font-semibold flex items-center gap-2">
+                    <RotateCw size={13} className="animate-spin text-red-500" />
+                    Enviando {batchProgress.current} de {batchProgress.total}...
+                  </span>
+                  <span className="text-red-400 font-bold">
+                    {Math.round((batchProgress.current / (batchProgress.total || 1)) * 100)}%
+                  </span>
+                </div>
+                <div className="w-full h-2 bg-zinc-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-red-600 to-rose-500 transition-all duration-300"
+                    style={{
+                      width: `${(batchProgress.current / (batchProgress.total || 1)) * 100}%`,
+                    }}
+                  />
+                </div>
+                {batchProgress.currentEmail && (
+                  <p className="text-[11px] text-zinc-400 truncate">
+                    Destino: <strong className="text-zinc-200">{batchProgress.currentEmail}</strong>
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Orders list preview */}
+            <div className="space-y-1.5">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+                Pedidos selecionados ({batchTargetOrders.length})
+              </span>
+              <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
+                {batchTargetOrders.length === 0 ? (
+                  <div className="p-4 text-center text-zinc-500 bg-zinc-900/40 rounded-xl border border-zinc-800/60">
+                    Nenhum pedido encontrado para o critério selecionado.
+                  </div>
+                ) : (
+                  batchTargetOrders.map((ord) => {
+                    const log = batchLogs.find((l) => l.id === ord.id);
+                    return (
+                      <div
+                        key={ord.id}
+                        className="flex items-center justify-between p-2.5 bg-zinc-900 border border-zinc-800/80 rounded-xl text-xs"
+                      >
+                        <div className="min-w-0 flex-1 pr-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-zinc-200 truncate">{ord.user_name || "Cliente"}</span>
+                            <span className="text-[10px] text-zinc-400">#{ord.id.slice(0, 8)}</span>
+                          </div>
+                          <span className="text-[11px] text-zinc-400 truncate block">{ord.user_email}</span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="font-semibold text-emerald-400 text-xs">
+                            R$ {Number(ord.total || 0).toFixed(2)}
+                          </span>
+                          {log ? (
+                            log.success ? (
+                              <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px]">
+                                ✓ Enviado
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-red-500/20 text-red-400 border border-red-500/30 text-[10px]">
+                                Falhou
+                              </Badge>
+                            )
+                          ) : ord.email_status === "enviado" ? (
+                            <Badge className="bg-zinc-800 text-zinc-400 text-[10px]">Já enviado</Badge>
+                          ) : (
+                            <Badge className="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px]">
+                              Pendente
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="mt-4 gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isBatchRunning}
+              onClick={() => setIsBatchModalOpen(false)}
+              className="border-zinc-800 bg-transparent text-zinc-300 hover:bg-zinc-800 rounded-xl"
+            >
+              Fechar
+            </Button>
+            <Button
+              size="sm"
+              disabled={isBatchRunning || batchTargetOrders.length === 0}
+              onClick={handleStartBatchResend}
+              className="bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:brightness-110 text-white rounded-xl gap-1.5 shadow-xs font-bold text-xs"
+            >
+              <RotateCw size={13} className={isBatchRunning ? "animate-spin" : ""} />
+              <span>
+                {isBatchRunning
+                  ? "Processando Disparo..."
+                  : `Disparar E-mails (${batchTargetOrders.length})`}
+              </span>
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

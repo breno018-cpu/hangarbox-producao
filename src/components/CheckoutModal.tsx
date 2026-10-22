@@ -3,7 +3,7 @@ import { trackInitiateCheckout, trackPurchase } from "@/lib/metaPixel";
 import { X, Copy, Check, QrCode, ShieldCheck, Lock, Tag, ExternalLink, Download, Loader2, AlertCircle, Clock, RefreshCw } from "lucide-react";
 import { Serie } from "@/data/series";
 import { Button } from "@/components/ui/button";
-import { type DbCoupon, createOrder, createMPPixPayment, checkOrderPaymentStatus, fetchSeriesAccessLinks } from "@/lib/api";
+import { type DbCoupon, createOrder, createMPPixPayment, checkOrderPaymentStatus, fetchSeriesAccessLinks, resendOrderEmail } from "@/lib/api";
 
 interface CheckoutModalProps {
   items: { serie: Serie }[];
@@ -89,6 +89,7 @@ const CheckoutModal = ({ items, totalPrice, onClose, onSuccess, appliedCoupon, d
           setConfirmed(true);
           setPaymentNotice("");
           setPaymentError("");
+          resendOrderEmail(orderId).catch((e) => console.warn("Email auto-dispatch:", e));
           trackPurchase({
             content_ids: items.map((i) => i.serie.id),
             content_type: "product",
@@ -204,6 +205,7 @@ const CheckoutModal = ({ items, totalPrice, onClose, onSuccess, appliedCoupon, d
       if (status.approved) {
         setConfirmed(true);
         setPaymentNotice("");
+        resendOrderEmail(orderId).catch((e) => console.warn("Email auto-dispatch:", e));
         trackPurchase({
           content_ids: items.map((i) => i.serie.id),
           content_type: "product",
