@@ -40,3 +40,6 @@ Plataforma de comércio eletrônico para séries, livros e conteúdos digitais e
 - `npm run lint`: Executa verificação do ESLint
 - `npm run preview`: Visualiza o build de produção localmente
 - `npm test`: Executa os testes automatizados com Vitest
+
+
+<!-- Vercel Deployment Trigger: 2026-10-22T00:14:05.887Z -->
