@@ -3,7 +3,7 @@ import { trackInitiateCheckout, trackPurchase } from "@/lib/metaPixel";
 import { X, Copy, Check, QrCode, ShieldCheck, Lock, Tag, ExternalLink, Download, Loader2, AlertCircle, Clock, RefreshCw } from "lucide-react";
 import { Serie } from "@/data/series";
 import { Button } from "@/components/ui/button";
-import { type DbCoupon, createOrder, createMPPixPayment, checkOrderPaymentStatus, fetchSeriesAccessLinks, resendOrderEmail } from "@/lib/api";
+import { type DbCoupon, type DbOrder, createOrder, createMPPixPayment, checkOrderPaymentStatus, fetchSeriesAccessLinks, resendOrderEmail } from "@/lib/api";
 
 interface CheckoutModalProps {
   items: { serie: Serie }[];
@@ -89,7 +89,22 @@ const CheckoutModal = ({ items, totalPrice, onClose, onSuccess, appliedCoupon, d
           setConfirmed(true);
           setPaymentNotice("");
           setPaymentError("");
-          resendOrderEmail(orderId).catch((e) => console.warn("Email auto-dispatch:", e));
+          const orderSnapshot: DbOrder = {
+            id: orderId,
+            user_email: customerEmail.trim().toLowerCase(),
+            user_name: customerName || customerEmail.split("@")[0],
+            items: items.map((i) => ({
+              id: i.serie.id,
+              titulo: i.serie.titulo,
+              preco: i.serie.preco,
+            })),
+            total: finalPrice,
+            status: "pago",
+            payment_method: "pix",
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          };
+          resendOrderEmail(orderId, orderSnapshot).catch((e) => console.warn("Email auto-dispatch:", e));
           trackPurchase({
             content_ids: items.map((i) => i.serie.id),
             content_type: "product",
@@ -103,7 +118,8 @@ const CheckoutModal = ({ items, totalPrice, onClose, onSuccess, appliedCoupon, d
       }
     };
 
-    pollRef.current = setInterval(poll, 5000);
+    // Poll every 7s to prevent hitting Mercado Pago search rate limits
+    pollRef.current = setInterval(poll, 7000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [orderId, customerEmail, confirmed, pixExpired]);
 
@@ -168,7 +184,7 @@ const CheckoutModal = ({ items, totalPrice, onClose, onSuccess, appliedCoupon, d
         setConfirming(true);
 
         const order = await createOrder({
-          user_email: customerEmail,
+          user_email: customerEmail.trim().toLowerCase(),
           user_name: customerName || customerEmail.split("@")[0],
           items: items.map((i) => ({
             id: i.serie.id,
@@ -196,6 +212,7 @@ const CheckoutModal = ({ items, totalPrice, onClose, onSuccess, appliedCoupon, d
       }
 
       setCheckingPayment(true);
+      setPaymentError("");
 
       const status = await checkOrderPaymentStatus({
         order_id: orderId,
@@ -205,7 +222,23 @@ const CheckoutModal = ({ items, totalPrice, onClose, onSuccess, appliedCoupon, d
       if (status.approved) {
         setConfirmed(true);
         setPaymentNotice("");
-        resendOrderEmail(orderId).catch((e) => console.warn("Email auto-dispatch:", e));
+        setPaymentError("");
+        const orderSnapshot: DbOrder = {
+          id: orderId,
+          user_email: customerEmail.trim().toLowerCase(),
+          user_name: customerName || customerEmail.split("@")[0],
+          items: items.map((i) => ({
+            id: i.serie.id,
+            titulo: i.serie.titulo,
+            preco: i.serie.preco,
+          })),
+          total: finalPrice,
+          status: "pago",
+          payment_method: "pix",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        resendOrderEmail(orderId, orderSnapshot).catch((e) => console.warn("Email auto-dispatch:", e));
         trackPurchase({
           content_ids: items.map((i) => i.serie.id),
           content_type: "product",
@@ -215,10 +248,14 @@ const CheckoutModal = ({ items, totalPrice, onClose, onSuccess, appliedCoupon, d
         return;
       }
 
-      setPaymentNotice("Pagamento ainda não foi identificado. Aguarde alguns segundos e tente novamente.");
+      setPaymentNotice("Pagamento em processamento. Assim que o banco confirmar a transferência, seu acesso é liberado automaticamente!");
     } catch (err: any) {
-      console.error("Payment flow error:", err);
-      setPaymentError(err?.message || "Não foi possível processar o pagamento PIX.");
+      console.warn("Payment flow check status:", err);
+      if (err?.message && !err.message.includes("verificar") && !err.message.includes("Falha")) {
+        setPaymentError(err.message);
+      } else {
+        setPaymentNotice("Aguardando confirmação bancária... Pode levar alguns segundos após a transferência.");
+      }
     } finally {
       setConfirming(false);
       setCheckingPayment(false);

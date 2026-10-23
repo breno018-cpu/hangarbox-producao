@@ -411,23 +411,53 @@ export async function createMPPixPayment(params: {
 export async function checkOrderPaymentStatus(params: {
   order_id: string;
   user_email: string;
-}): Promise<{ status: string; approved: boolean }> {
+}): Promise<{ status: string; approved: boolean; notice?: string }> {
   const projectId = LOVABLE_PROJECT_ID;
-  const response = await fetch(`https://${projectId}.supabase.co/functions/v1/check-mp-payment-status`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      apikey: LOVABLE_ANON_KEY,
-    },
-    body: JSON.stringify(params),
-  });
+  try {
+    const response = await fetch(`https://${projectId}.supabase.co/functions/v1/check-mp-payment-status`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: LOVABLE_ANON_KEY,
+      },
+      body: JSON.stringify({
+        order_id: params.order_id,
+        user_email: params.user_email.trim().toLowerCase(),
+      }),
+    });
 
-  if (!response.ok) {
-    const err = await response.json();
-    throw new Error(err.error || "Erro ao verificar pagamento");
+    if (!response.ok) {
+      // 502 (Bad Gateway from Mercado Pago search) or 429 (Rate Limit) or 503/504
+      if (response.status === 502 || response.status === 429 || response.status === 503 || response.status === 504) {
+        console.warn(`Mercado Pago check status ${response.status} (transitório). Mantendo como pendente.`);
+        return { status: "pendente", approved: false, notice: "Aguardando confirmação bancária..." };
+      }
+
+      const err = await response.json().catch(() => ({}));
+      // If 404 (order still syncing in backend) or transient error
+      if (response.status === 404) {
+        return { status: "pendente", approved: false };
+      }
+      if (err.error?.includes("verificar") || err.error?.includes("Falha")) {
+        return { status: "pendente", approved: false, notice: "Aguardando confirmação bancária..." };
+      }
+      throw new Error(err.error || "Erro ao verificar pagamento");
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (err: any) {
+    if (
+      err?.message?.includes("verificar") ||
+      err?.message?.includes("Falha") ||
+      err?.message?.includes("Failed to fetch") ||
+      err?.message?.includes("NetworkError")
+    ) {
+      console.warn("Tratando erro transitório de verificação como pendente:", err);
+      return { status: "pendente", approved: false, notice: "Aguardando confirmação bancária..." };
+    }
+    throw err;
   }
-
-  return response.json();
 }
 
 // ========== COUPONS ==========
