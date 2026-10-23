@@ -63,12 +63,12 @@ export const SeriesCard = memo(({
       {/* Poster Image Container with hover zoom & glow */}
       <button
         onClick={() => onSelect(serie)}
-        className="relative w-full overflow-hidden rounded-2xl border border-white/10 transition-all duration-300 group-hover:scale-[1.03] group-hover:border-primary/70 shadow-md group-hover:shadow-[0_12px_36px_hsl(var(--primary)/0.35)] block cursor-pointer"
+        className="relative w-full overflow-hidden rounded-2xl border border-white/10 transition-all duration-300 md:group-hover:scale-[1.03] group-hover:border-primary/70 shadow-md group-hover:shadow-[0_12px_36px_hsl(var(--primary)/0.35)] block cursor-pointer"
       >
         <img
           src={serie.capa_url}
           alt={serie.titulo}
-          className="w-full aspect-[2/3] object-cover transition-transform duration-500 group-hover:scale-105"
+          className="w-full aspect-[3/4] object-cover object-top md:object-center transition-transform duration-500 md:group-hover:scale-105"
           loading="lazy"
           decoding="async"
         />
@@ -172,7 +172,7 @@ const SeriesListItem = memo(({
         <img
           src={serie.capa_url}
           alt={serie.titulo}
-          className="w-full aspect-[2/3] object-cover transition-transform duration-300 group-hover:scale-[1.04]"
+          className="w-full aspect-[3/4] object-cover object-top md:object-center transition-transform duration-300 md:group-hover:scale-[1.04]"
           loading="lazy"
           decoding="async"
         />
@@ -311,7 +311,7 @@ const Top10Carousel = ({ series, isMobile, getGlowColor, onSelect, onBuy }: Top1
       >
         <div className="flex gap-4 sm:gap-5 w-max">
           {series.slice(0, 10).map((serie, idx) => (
-            <div key={serie.id} className="w-[165px] sm:w-[195px] md:w-[215px] flex-shrink-0 snap-start">
+            <div key={serie.id} className="w-[150px] sm:w-[180px] md:w-[205px] flex-shrink-0 snap-start">
               <SeriesCard
                 serie={serie}
                 idx={idx}
@@ -363,24 +363,13 @@ const SeriesRow = memo(({ title, series, onSelect, onBuy, showRank = false, layo
           </div>
 
           {/* Cards carousel */}
-          <div className="overflow-x-auto scrollbar-hide -mx-2 px-2 pb-2">
-            <div className="flex gap-4 sm:gap-5 w-max">
-              {series.slice(0, 10).map((serie, idx) => (
-                <div key={serie.id} className="w-[165px] sm:w-[195px] md:w-[215px] flex-shrink-0">
-                  <SeriesCard
-                    serie={serie}
-                    idx={idx}
-                    showRank={true}
-                    layoutMode="horizontal"
-                    isMobile={isMobile}
-                    glowHSL={getGlowColor(serie.categoria)}
-                    onSelect={onSelect}
-                    onBuy={onBuy}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
+          <Top10Carousel
+            series={series}
+            isMobile={isMobile}
+            getGlowColor={getGlowColor}
+            onSelect={onSelect}
+            onBuy={onBuy}
+          />
         </div>
       </section>
     );
@@ -402,7 +391,7 @@ const SeriesRow = memo(({ title, series, onSelect, onBuy, showRank = false, layo
             layoutMode === "horizontal" ? (
               <div
                 key={serie.id}
-                className={isMobile ? "w-[42vw] flex-shrink-0 snap-start" : "w-[180px] flex-shrink-0"}
+                className={isMobile ? "w-[40vw] max-w-[170px] min-w-[140px] flex-shrink-0 snap-start" : "w-[180px] flex-shrink-0"}
               >
                 <SeriesCard
                   serie={serie}

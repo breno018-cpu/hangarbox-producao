@@ -317,7 +317,7 @@ const CheckoutModal = ({ items, totalPrice, onClose, onSuccess, appliedCoupon, d
                     const linkAcesso = unlockedLinks[item.serie.id] || "";
                     return (
                       <div key={item.serie.id} className="flex items-center gap-3 p-3 bg-card rounded-lg border border-border/10">
-                        <img src={item.serie.capa_url} alt="" className="w-10 h-14 object-cover rounded flex-shrink-0" />
+                        <img src={item.serie.capa_url} alt="" className="w-11 h-14.5 aspect-[3/4] object-cover object-top rounded flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-body font-medium text-foreground truncate">{item.serie.titulo}</p>
                           {linkAcesso ? (
@@ -352,7 +352,7 @@ const CheckoutModal = ({ items, totalPrice, onClose, onSuccess, appliedCoupon, d
               <div className="space-y-2.5 mb-4">
                 {items.map((item) => (
                   <div key={item.serie.id} className="flex items-center gap-3 p-3 bg-secondary/30 rounded-lg">
-                    <img src={item.serie.capa_url} alt={item.serie.titulo} className="w-12 h-[68px] object-cover rounded flex-shrink-0" />
+                    <img src={item.serie.capa_url} alt={item.serie.titulo} className="w-12 h-16 aspect-[3/4] object-cover object-top rounded flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-body font-medium text-foreground truncate">{item.serie.titulo}</p>
                       <p className="text-xs font-body text-muted-foreground">Acesso vitalício</p>

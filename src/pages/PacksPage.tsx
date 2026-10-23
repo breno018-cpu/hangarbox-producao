@@ -144,7 +144,7 @@ const PacksPage = () => {
                     {/* Cover */}
                     <div className="relative aspect-[16/10] overflow-hidden">
                       {pack.capa_url ? (
-                        <img src={pack.capa_url} alt={pack.titulo} loading="lazy" className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500" />
+                        <img src={pack.capa_url} alt={pack.titulo} loading="lazy" className="w-full aspect-[3/4] object-cover object-top md:group-hover:scale-[1.03] transition-transform duration-500" />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-primary/25 to-accent/15 flex items-center justify-center">
                           <Package size={44} className="text-primary/40" />

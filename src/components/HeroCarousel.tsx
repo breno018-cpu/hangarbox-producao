@@ -77,12 +77,12 @@ const HeroCarousel = memo(({ series, onDetails, onBuy }: HeroCarouselProps) => {
         <motion.div
           key={s.id}
           className="absolute inset-0"
-          initial={{ opacity: 0, scale: 1.05 }}
-          animate={{ opacity: 1, scale: 1 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 1.2, ease: "easeOut" }}
         >
-          <img src={s.fundo_url} alt="" className="w-full h-full object-cover" loading="eager" decoding="async" />
+          <img src={s.fundo_url || s.capa_url} alt="" className="w-full h-full object-cover object-top md:object-center" loading="eager" decoding="async" />
         </motion.div>
       </AnimatePresence>
 

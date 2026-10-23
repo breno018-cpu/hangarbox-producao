@@ -360,7 +360,7 @@ const RankingPage = ({ allSeries, onClose, onSelect }: RankingPageProps) => {
                     <img
                       src={serie.capa_url}
                       alt={serie.titulo}
-                      className={`${isFirst ? "w-24 h-36" : "w-20 h-28"} object-cover rounded-xl shadow-lg mb-3`}
+                      className={`${isFirst ? "w-24 h-32" : "w-20 h-27"} aspect-[3/4] object-cover object-top rounded-xl shadow-lg mb-3`}
                       loading="lazy"
                     />
                     <h3 className="text-sm font-body font-semibold text-foreground truncate max-w-full">{serie.titulo}</h3>
@@ -423,7 +423,7 @@ const RankingPage = ({ allSeries, onClose, onSelect }: RankingPageProps) => {
                   <img
                     src={serie.capa_url}
                     alt={serie.titulo}
-                    className="w-11 h-16 md:w-14 md:h-20 object-cover rounded-xl flex-shrink-0"
+                    className="w-12 h-16 md:w-14 md:h-18.5 aspect-[3/4] object-cover object-top rounded-xl flex-shrink-0"
                     loading="lazy"
                   />
 

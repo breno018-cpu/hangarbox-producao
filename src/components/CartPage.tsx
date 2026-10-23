@@ -84,7 +84,7 @@ const CartPage = ({ onClose, onCheckout }: CartPageProps) => {
                   className="flex items-center gap-3 p-3 md:p-4 bg-card border border-border/10 rounded-xl group animate-fade-in"
                   style={{ animationDelay: `${idx * 0.04}s` }}
                 >
-                  <img src={item.serie.capa_url} alt={item.serie.titulo} className="w-11 h-16 md:w-14 md:h-20 object-cover rounded-lg flex-shrink-0" />
+                  <img src={item.serie.capa_url} alt={item.serie.titulo} className="w-12 h-16 md:w-14 md:h-18.5 aspect-[3/4] object-cover object-top rounded-lg flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <h4 className="font-body font-semibold text-foreground text-sm md:text-base truncate">{item.serie.titulo}</h4>
                     <p className="text-[10px] md:text-xs font-body text-muted-foreground mt-0.5 line-clamp-1">{item.serie.resumo}</p>
