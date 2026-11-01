@@ -609,6 +609,60 @@ export async function saveNavTabs(tabs: NavTab[]): Promise<void> {
   }
 }
 
+// ========== TOP WATCHED / MAIS ASSISTIDAS ==========
+
+export interface TopWatchedConfig {
+  title: string;
+  mode: "manual" | "auto";
+  series_ids: string[];
+  is_visible: boolean;
+}
+
+export const DEFAULT_TOP_WATCHED_CONFIG: TopWatchedConfig = {
+  title: "Top 10 Mais Assistidos & Destaques",
+  mode: "manual",
+  series_ids: [],
+  is_visible: true,
+};
+
+export async function fetchTopWatchedConfig(): Promise<TopWatchedConfig> {
+  const { data, error } = await supabase
+    .from("site_settings")
+    .select("value")
+    .eq("key", "top_watched_config")
+    .maybeSingle();
+
+  if (error || !data || !data.value) return DEFAULT_TOP_WATCHED_CONFIG;
+  const val = data.value as any;
+  return {
+    title: typeof val.title === "string" && val.title.trim() ? val.title : DEFAULT_TOP_WATCHED_CONFIG.title,
+    mode: val.mode === "auto" ? "auto" : "manual",
+    series_ids: Array.isArray(val.series_ids) ? val.series_ids : [],
+    is_visible: val.is_visible !== false,
+  };
+}
+
+export async function saveTopWatchedConfig(config: TopWatchedConfig): Promise<void> {
+  const { data: existing } = await supabase
+    .from("site_settings")
+    .select("id")
+    .eq("key", "top_watched_config")
+    .maybeSingle();
+
+  if (existing) {
+    const { error } = await supabase
+      .from("site_settings")
+      .update({ value: config as any } as any)
+      .eq("key", "top_watched_config");
+    if (error) throw error;
+  } else {
+    const { error } = await supabase
+      .from("site_settings")
+      .insert({ key: "top_watched_config", value: config as any } as any);
+    if (error) throw error;
+  }
+}
+
 // ========== STATS ==========
 
 export async function fetchDashboardStats() {

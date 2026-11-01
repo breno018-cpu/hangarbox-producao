@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import {
   Plus, Trash2, Edit, Save, X, Eye, EyeOff,
-  ArrowUp, ArrowDown, Layers, Palette, Filter
+  ArrowUp, ArrowDown, Layers, Palette, Filter,
+  Trophy
 } from "lucide-react";
+import TopWatchedModal from "./TopWatchedModal";
 import { Button } from "@/components/ui/button";
 import {
   fetchCarouselSections, createCarouselSection, updateCarouselSection, deleteCarouselSection,
@@ -57,6 +59,7 @@ export default function CarouselManager({ sections, setSections, allSeries }: Ca
   const [saving, setSaving] = useState(false);
   const [subTab, setSubTab] = useState<SubTab>("sections");
   const [genreFilter, setGenreFilter] = useState<string>("all");
+  const [topWatchedModalOpen, setTopWatchedModalOpen] = useState(false);
 
   // Genre colors
   const { colors: genreColors } = useGenreColors();
@@ -241,6 +244,34 @@ export default function CarouselManager({ sections, setSections, allSeries }: Ca
             </div>
           )}
 
+          {/* Spotlight Card: Top 10 Mais Assistidos & Destaques */}
+          <div className="bg-gradient-to-r from-amber-500/10 via-rose-500/5 to-transparent border border-amber-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xs">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-rose-600 text-white flex items-center justify-center font-black shadow-md shadow-amber-500/20 shrink-0">
+                <Trophy size={20} />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <span>Top 10 Mais Assistidos & Destaques</span>
+                  <span className="text-[10px] bg-amber-100 text-amber-800 font-extrabold px-2 py-0.5 rounded-full border border-amber-200">
+                    DESTAQUE PRINCIPAL DA LOJA
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Esta é a fileira principal com ranking (#1 ao #10). Escolha quais obras aparecem e sua ordem exata.
+                </p>
+              </div>
+            </div>
+            <Button
+              type="button"
+              onClick={() => setTopWatchedModalOpen(true)}
+              className="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold gap-1.5 rounded-xl shadow-xs shrink-0"
+            >
+              <Trophy size={14} />
+              Alterar Mais Assistidas (Top 10)
+            </Button>
+          </div>
+
           <div className="pt-4 space-y-3">
             {filteredSections.length === 0 ? (
               <div className="bg-slate-50 border border-slate-200 rounded-2xl p-12 text-center">
@@ -281,6 +312,16 @@ export default function CarouselManager({ sections, setSections, allSeries }: Ca
                         <h4 className="text-sm font-semibold text-slate-900 truncate">{s.title}</h4>
                         {s.show_rank && (
                           <span className="text-[9px] font-bold px-1.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded">RANK</span>
+                        )}
+                        {(s.show_rank || s.title.toUpperCase().includes("MAIS ASSISTIDAS")) && (
+                          <button
+                            type="button"
+                            onClick={() => setTopWatchedModalOpen(true)}
+                            className="text-[10px] font-bold px-2 py-0.5 bg-amber-500 hover:bg-amber-600 text-white rounded-md transition-colors flex items-center gap-1 shadow-2xs"
+                          >
+                            <Trophy size={10} />
+                            Definir Séries
+                          </button>
                         )}
                       </div>
                       <div className="flex items-center gap-3 mt-1 flex-wrap">
@@ -491,6 +532,11 @@ export default function CarouselManager({ sections, setSections, allSeries }: Ca
           </div>
         </div>
       )}
+      <TopWatchedModal
+        open={topWatchedModalOpen}
+        onOpenChange={setTopWatchedModalOpen}
+        allSeries={allSeries}
+      />
     </div>
   );
 }

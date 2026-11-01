@@ -19,7 +19,7 @@ import { seriesData, Serie } from "@/data/series";
 import { useCart } from "@/contexts/CartContext";
 import { trackSearch } from "@/lib/metaPixel";
 import { stripEmojis } from "@/lib/utils";
-import { type DbCoupon, type NavTab, DEFAULT_NAV_TABS, fetchVisibleCarouselSections, fetchNavTabs, fetchActiveSeries, type DbCarouselSection, type DbSerie } from "@/lib/api";
+import { type DbCoupon, type NavTab, DEFAULT_NAV_TABS, fetchVisibleCarouselSections, fetchNavTabs, fetchActiveSeries, fetchTopWatchedConfig, type TopWatchedConfig, DEFAULT_TOP_WATCHED_CONFIG, type DbCarouselSection, type DbSerie } from "@/lib/api";
 
 const dbSerieToSerie = (db: DbSerie): Serie => ({
   id: db.id,
@@ -59,6 +59,7 @@ const Index = () => {
   const [checkoutCoupon, setCheckoutCoupon] = useState<DbCoupon | undefined>();
   const [checkoutDiscount, setCheckoutDiscount] = useState(0);
   const [carouselSections, setCarouselSections] = useState<DbCarouselSection[]>([]);
+  const [topWatchedConfig, setTopWatchedConfig] = useState<TopWatchedConfig>(DEFAULT_TOP_WATCHED_CONFIG);
   const [allSeries, setAllSeries] = useState<Serie[]>(seriesData);
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [rankingOpen, setRankingOpen] = useState(false);
@@ -189,6 +190,36 @@ const Index = () => {
 
     return applyFilters(base, filters).slice(0, section.max_items);
   }, [tabFilteredSeries, filters]);
+
+  // Dynamic Top 10 (Mais Assistidas) calculation
+  const topWatchedSeries = useMemo(() => {
+    const base = [...tabFilteredSeries];
+    if (
+      !topWatchedConfig ||
+      topWatchedConfig.mode === "auto" ||
+      !topWatchedConfig.series_ids ||
+      topWatchedConfig.series_ids.length === 0
+    ) {
+      return base.sort((a, b) => b.vendas_count - a.vendas_count).slice(0, 10);
+    }
+
+    const seriesMap = new Map(allSeries.map((s) => [s.id, s]));
+    const manualList: Serie[] = [];
+    for (const id of topWatchedConfig.series_ids) {
+      const found = seriesMap.get(id);
+      if (found) {
+        if (isHomeTab || base.some((b) => b.id === found.id)) {
+          manualList.push(found);
+        }
+      }
+    }
+
+    if (manualList.length === 0) {
+      return base.sort((a, b) => b.vendas_count - a.vendas_count).slice(0, 10);
+    }
+
+    return manualList;
+  }, [allSeries, tabFilteredSeries, topWatchedConfig, isHomeTab]);
 
   // Pre-compute section rows — each section shows exactly what admin configured
   const sectionRows = useMemo(() => {
@@ -359,28 +390,37 @@ const Index = () => {
         ) : (
           <>
             {/* 1. Top 10 Ranking Box (Mais Assistidos & Destaques) */}
-            <SeriesRow
-              title="Top 10 Mais Assistidos & Destaques"
-              series={[...tabFilteredSeries].sort((a, b) => b.vendas_count - a.vendas_count)}
-              onSelect={handleSelectSerie}
-              onBuy={handleDirectBuy}
-              showRank
-            />
+            {topWatchedConfig.is_visible && topWatchedSeries.length > 0 && (
+              <SeriesRow
+                title={topWatchedConfig.title || "Top 10 Mais Assistidos & Destaques"}
+                series={topWatchedSeries}
+                onSelect={handleSelectSerie}
+                onBuy={handleDirectBuy}
+                showRank
+              />
+            )}
 
             {/* 2. Custom admin carousel sections if configured */}
-            {sectionRows.filter(({ section }) => !section.show_rank).map(({ section, series }) => (
-              series.length > 0 ? (
-                <SeriesRow
-                  key={section.id}
-                  title={section.title}
-                  series={series}
-                  onSelect={handleSelectSerie}
-                  onBuy={handleDirectBuy}
-                  showRank={false}
-                  layoutMode={(section as any).layout_mode || "horizontal"}
-                />
-              ) : null
-            ))}
+            {sectionRows
+              .filter(({ section }) => {
+                const isTopDuplicate =
+                  section.title.trim().toUpperCase() === "MAIS ASSISTIDAS" ||
+                  (section.show_rank && section.title.toLowerCase().includes("mais assistid"));
+                return !isTopDuplicate;
+              })
+              .map(({ section, series }) => (
+                series.length > 0 ? (
+                  <SeriesRow
+                    key={section.id}
+                    title={section.title}
+                    series={series}
+                    onSelect={handleSelectSerie}
+                    onBuy={handleDirectBuy}
+                    showRank={section.show_rank || false}
+                    layoutMode={(section as any).layout_mode || "horizontal"}
+                  />
+                ) : null
+              ))}
 
             {/* 3. Catálogo Completo — O último bloco da página antes do footer */}
             <FullCatalogSection

@@ -20,7 +20,9 @@ import {
   Eye,
   SlidersHorizontal,
   AlertTriangle,
+  Trophy,
 } from "lucide-react";
+import TopWatchedModal from "./TopWatchedModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -104,6 +106,7 @@ export const CatalogModule: React.FC<CatalogModuleProps> = ({
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
+  const [topWatchedModalOpen, setTopWatchedModalOpen] = useState(false);
 
   // Edit / Create Dialog state
   const [isOpenModal, setIsOpenModal] = useState(false);
@@ -428,6 +431,16 @@ export const CatalogModule: React.FC<CatalogModuleProps> = ({
               <SlidersHorizontal size={15} />
             </button>
           </div>
+
+          {/* Mais Assistidas (Top 10) Button */}
+          <Button
+            type="button"
+            onClick={() => setTopWatchedModalOpen(true)}
+            className="h-10 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-3.5 gap-2 rounded-xl shadow-xs transition-all"
+          >
+            <Trophy size={16} />
+            <span>Mais Assistidas (Top 10)</span>
+          </Button>
 
           {/* Add Item Button */}
           <Button
@@ -913,6 +926,47 @@ export const CatalogModule: React.FC<CatalogModuleProps> = ({
                 </div>
               </div>
 
+              {/* Vendas & Posição */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-slate-700 font-semibold flex items-center gap-1">
+                    <Trophy size={12} className="text-amber-500" />
+                    Vendas / Visualizações
+                  </label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={editItem.vendas_count ?? 0}
+                    onChange={(e) =>
+                      setEditItem({ ...editItem, vendas_count: parseInt(e.target.value) || 0 })
+                    }
+                    className="bg-slate-50 border-slate-200 text-slate-900 rounded-xl h-10 text-xs"
+                  />
+                  <span className="text-[10px] text-slate-500">
+                    Usado no ranking automático e contagem de compras.
+                  </span>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-slate-700 font-semibold flex items-center gap-1">
+                    <Layers size={12} className="text-blue-500" />
+                    Posição no Catálogo
+                  </label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={editItem.posicao ?? 0}
+                    onChange={(e) =>
+                      setEditItem({ ...editItem, posicao: parseInt(e.target.value) || 0 })
+                    }
+                    className="bg-slate-50 border-slate-200 text-slate-900 rounded-xl h-10 text-xs"
+                  />
+                  <span className="text-[10px] text-slate-500">
+                    Ordem de ordenação geral quando classificado por posição.
+                  </span>
+                </div>
+              </div>
+
               {/* Switches: Destaque Hero & Conteúdo Adulto */}
               <div className="flex flex-wrap items-center gap-6 pt-2">
                 <div className="flex items-center gap-2">
@@ -1002,6 +1056,11 @@ export const CatalogModule: React.FC<CatalogModuleProps> = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <TopWatchedModal
+        open={topWatchedModalOpen}
+        onOpenChange={setTopWatchedModalOpen}
+        allSeries={series}
+      />
     </div>
   );
 };
