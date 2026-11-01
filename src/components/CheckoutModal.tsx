@@ -89,15 +89,35 @@ const CheckoutModal = ({ items, totalPrice, onClose, onSuccess, appliedCoupon, d
           setConfirmed(true);
           setPaymentNotice("");
           setPaymentError("");
+          let itemsWithLinks = items.map((i) => ({
+            id: i.serie.id,
+            titulo: i.serie.titulo,
+            preco: i.serie.preco,
+            link_acesso: unlockedLinks[i.serie.id] || "",
+          }));
+
+          try {
+            const linksMap = await fetchSeriesAccessLinks(items.map((i) => i.serie.id));
+            itemsWithLinks = items.map((i) => ({
+              id: i.serie.id,
+              titulo: i.serie.titulo,
+              preco: i.serie.preco,
+              link_acesso: linksMap[i.serie.id]?.link_acesso || unlockedLinks[i.serie.id] || "",
+            }));
+            const linksObj: Record<string, string> = {};
+            for (const [id, val] of Object.entries(linksMap)) {
+              linksObj[id] = val.link_acesso;
+            }
+            setUnlockedLinks(linksObj);
+          } catch (e) {
+            console.warn("Erro ao buscar links de acesso no snapshot:", e);
+          }
+
           const orderSnapshot: DbOrder = {
             id: orderId,
             user_email: customerEmail.trim().toLowerCase(),
             user_name: customerName || customerEmail.split("@")[0],
-            items: items.map((i) => ({
-              id: i.serie.id,
-              titulo: i.serie.titulo,
-              preco: i.serie.preco,
-            })),
+            items: itemsWithLinks,
             total: finalPrice,
             status: "pago",
             payment_method: "pix",
@@ -223,15 +243,35 @@ const CheckoutModal = ({ items, totalPrice, onClose, onSuccess, appliedCoupon, d
         setConfirmed(true);
         setPaymentNotice("");
         setPaymentError("");
+        let itemsWithLinks = items.map((i) => ({
+          id: i.serie.id,
+          titulo: i.serie.titulo,
+          preco: i.serie.preco,
+          link_acesso: unlockedLinks[i.serie.id] || "",
+        }));
+
+        try {
+          const linksMap = await fetchSeriesAccessLinks(items.map((i) => i.serie.id));
+          itemsWithLinks = items.map((i) => ({
+            id: i.serie.id,
+            titulo: i.serie.titulo,
+            preco: i.serie.preco,
+            link_acesso: linksMap[i.serie.id]?.link_acesso || unlockedLinks[i.serie.id] || "",
+          }));
+          const linksObj: Record<string, string> = {};
+          for (const [id, val] of Object.entries(linksMap)) {
+            linksObj[id] = val.link_acesso;
+          }
+          setUnlockedLinks(linksObj);
+        } catch (e) {
+          console.warn("Erro ao buscar links de acesso no snapshot manual:", e);
+        }
+
         const orderSnapshot: DbOrder = {
           id: orderId,
           user_email: customerEmail.trim().toLowerCase(),
           user_name: customerName || customerEmail.split("@")[0],
-          items: items.map((i) => ({
-            id: i.serie.id,
-            titulo: i.serie.titulo,
-            preco: i.serie.preco,
-          })),
+          items: itemsWithLinks,
           total: finalPrice,
           status: "pago",
           payment_method: "pix",

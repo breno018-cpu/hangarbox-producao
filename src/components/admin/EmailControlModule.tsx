@@ -106,7 +106,11 @@ export const EmailControlModule: React.FC<EmailControlModuleProps> = ({
       if (o.status !== "pago") return false;
       const d = o.created_at || o.updated_at;
       if (!d) return false;
-      return d >= "2026-10-18T00:00:00" || d.includes("2026-10-18") || d.includes("2026-10-19") || d.includes("2026-10-20") || d.includes("2026-10-21") || d.includes("2026-10-22");
+      try {
+        return new Date(d).getTime() >= new Date("2026-10-18T00:00:00").getTime();
+      } catch {
+        return d >= "2026-10-18";
+      }
     });
   }, [orders]);
 
