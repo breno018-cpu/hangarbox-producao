@@ -665,6 +665,19 @@ export async function saveTopWatchedConfig(config: TopWatchedConfig): Promise<vo
 
 // ========== EXTENSIONS & INTEGRATIONS ==========
 
+export interface ExtensionApiSpec {
+  apiName: string;
+  protocol: "REST / HTTPS" | "WebSocket / Realtime" | "Server-Side CAPI" | "gRPC / Neural" | "Webhook Event";
+  endpoint: string;
+  authType: string;
+  samplePayload?: string;
+  humanDescription: {
+    whatItDoes: string;
+    howItWorks: string;
+    businessImpact: string;
+  };
+}
+
 export interface ExtensionItem {
   id: string;
   name: string;
@@ -677,6 +690,7 @@ export interface ExtensionItem {
   lockReason?: string;
   badge?: string;
   version: string;
+  apiSpec?: ExtensionApiSpec;
   telemetry?: {
     statusText: string;
     metrics: Array<{ label: string; value: string }>;
@@ -705,6 +719,25 @@ export const DEFAULT_EXTENSIONS_CONFIG: ExtensionsConfig = {
       isLocked: false,
       badge: "ATIVO (CORE)",
       version: "v2.5.0-LTS",
+      apiSpec: {
+        apiName: "Pixel Collab Cluster Protocol v2.5",
+        protocol: "WebSocket / Realtime",
+        endpoint: "wss://api.collab.hangarbox.cloud/v2/cluster/stream",
+        authType: "mTLS + Bearer Token Workspace",
+        samplePayload: JSON.stringify({
+          event: "CLUSTER_SYNC_HEARTBEAT",
+          cluster_node: "sa-east-sp01",
+          workspace_id: "collab_ws_live_hb992",
+          active_series: 321,
+          sync_latency_ms: 14,
+          timestamp: "2026-11-04T22:50:00Z"
+        }, null, 2),
+        humanDescription: {
+          whatItDoes: "Atua como o sistema nervoso central e a espinha dorsal de governança da loja. Mantém os dados de catálogo (321 títulos), permissões de acesso, logins e regras de negócio sincronizados em tempo real.",
+          howItWorks: "Mantém uma conexão persistente de altíssima velocidade com clusters de replicação em São Paulo (sa-east-1). Cada alteração de título ou compra é replicada para todos os nós em menos de 14ms.",
+          businessImpact: "Garante integridade absoluta de dados, evita duplicidade de pedidos e assegura 99.9% de uptime para a plataforma."
+        }
+      },
       telemetry: {
         statusText: "Cluster SP-01 Operacional (Sync 100%)",
         metrics: [
@@ -738,6 +771,26 @@ export const DEFAULT_EXTENSIONS_CONFIG: ExtensionsConfig = {
       lockReason: "Módulo bloqueado na sua licença. Requer HangarBox Enterprise Suite.",
       badge: "🔒 BLOQUEADO",
       version: "v4.1.0",
+      apiSpec: {
+        apiName: "Meta Graph API v19.0 & Conversions API (CAPI)",
+        protocol: "Server-Side CAPI",
+        endpoint: "https://graph.facebook.com/v19.0/{pixel_id}/events",
+        authType: "System User Access Token (Bearer)",
+        samplePayload: JSON.stringify({
+          data: [{
+            event_name: "Purchase",
+            event_time: 1773017000,
+            event_id: "order_hb_994821",
+            user_data: { em: "a6c8...hashed", ph: "d91b...hashed" },
+            custom_data: { currency: "BRL", value: 29.90, content_name: "Série VIP" }
+          }]
+        }, null, 2),
+        humanDescription: {
+          whatItDoes: "Envia dados precisos de comportamento (visualização de séries, início de checkout e compras aprovadas no Pix) para o Gerenciador de Anúncios da Meta.",
+          howItWorks: "Funciona em arquitetura híbrida: o script do navegador coleta cookies de primeira parte enquanto o servidor dispara requisições HTTPS diretamente para a Graph API da Meta com deduplicação automática (event_id).",
+          businessImpact: "Diminui o custo por aquisição (CPA) em até 35% e alimenta a inteligência do algoritmo do Facebook/Instagram com compradores qualificados."
+        }
+      },
       telemetry: {
         statusText: "Meta Graph API v19.0 Conectado",
         metrics: [
@@ -773,6 +826,25 @@ export const DEFAULT_EXTENSIONS_CONFIG: ExtensionsConfig = {
       lockReason: "Módulo bloqueado na sua licença. Requer HangarBox Enterprise Suite.",
       badge: "🔒 BLOQUEADO",
       version: "v3.0.0-AI",
+      apiSpec: {
+        apiName: "Évora Neural Conversational Engine v3.0",
+        protocol: "gRPC / Neural",
+        endpoint: "https://api.openai.com/v1/chat/completions",
+        authType: "API Key + Embeddings RAG Vectorial",
+        samplePayload: JSON.stringify({
+          model: "gpt-4o-mini-hangarbox",
+          messages: [
+            { role: "system", content: "Você é a Évora, concierge oficial da HangarBox..." },
+            { role: "user", content: "Tem a série 'Só Mais Uma Vez' dublada e quanto custa?" }
+          ],
+          temperature: 0.7
+        }, null, 2),
+        humanDescription: {
+          whatItDoes: "Atendente virtual inteligente que recebe os clientes na vitrine, responde dúvidas sobre dublagem e episódios, recomenda títulos por afinidade e ajuda no pagamento Pix.",
+          howItWorks: "Usa geração aumentada por recuperação (RAG) consultando a base de 321 séries em tempo real. Responde de forma humanizada, persuasiva e personalizada em menos de 1,2 segundos.",
+          businessImpact: "Aumenta as conversões em até 22%, atende de madrugada sem custo de atendentes humanos e diminui dúvidas repetitivas no suporte."
+        }
+      },
       telemetry: {
         statusText: "Motor Neural GPT-4o Mini Ativo",
         metrics: [
@@ -806,6 +878,24 @@ export const DEFAULT_EXTENSIONS_CONFIG: ExtensionsConfig = {
       lockReason: "Módulo bloqueado na sua licença. Requer HangarBox Enterprise Suite.",
       badge: "🔒 BLOQUEADO",
       version: "v2.1.0",
+      apiSpec: {
+        apiName: "Sentinel Shield Anti-Fraud API v2.1",
+        protocol: "REST / HTTPS",
+        endpoint: "https://shield.hangarbox.cloud/v2/analyze-request",
+        authType: "HMAC Signature + IP Reputation Hash",
+        samplePayload: JSON.stringify({
+          client_ip: "189.40.12.94",
+          email_domain: "mailinator.com",
+          device_fingerprint: "fp_98a72b10",
+          action: "INITIATE_CHECKOUT",
+          verdict: "BLOCKED_DISPOSABLE_EMAIL"
+        }, null, 2),
+        humanDescription: {
+          whatItDoes: "Protege sua loja contra bots que sobrecarregam o servidor, pessoas que geram dezenas de Pix fantasmas sem pagar e tentativas de uso de e-mails falsos.",
+          howItWorks: "Verifica a reputação do endereço IP do visitante em listas globais de spam e valida se o domínio do e-mail é temporário (10minutemail, tempmail). Se houver abuso, barra o checkout instantaneamente.",
+          businessImpact: "Preserva a conta bancária e o gateway Mercado Pago com pontuação de segurança máxima, prevenindo bloqueios por taxa de cancelamento."
+        }
+      },
       telemetry: {
         statusText: "Blindagem Nível 3 Ativa",
         metrics: [
@@ -836,6 +926,22 @@ export const DEFAULT_EXTENSIONS_CONFIG: ExtensionsConfig = {
       lockReason: "Módulo bloqueado na sua licença. Requer HangarBox Enterprise Suite.",
       badge: "🔒 BLOQUEADO",
       version: "v2.4.0",
+      apiSpec: {
+        apiName: "WhatsApp Evolution API v2.4 Message Engine",
+        protocol: "REST / HTTPS",
+        endpoint: "https://api.hangarbox-evolution.cloud/message/sendText",
+        authType: "Bearer Token Instance Auth",
+        samplePayload: JSON.stringify({
+          number: "5511999999999",
+          text: "🎬 Olá Marcos! Seu acesso à série está aguardando. Segue o código Pix para assistir agora: 000201...",
+          delay: 1200
+        }, null, 2),
+        humanDescription: {
+          whatItDoes: "Dispara mensagens automáticas no WhatsApp para clientes que geraram o código Pix mas esqueceram de pagar no aplicativo do banco.",
+          howItWorks: "Monitora pedidos com status 'pendente'. Se o pagamento não for confirmado em 8 minutos, monta uma mensagem amigável com a chave Pix Copia e Cola e envia pelo aparelho pareado.",
+          businessImpact: "Recupera em média 28% das vendas que seriam dadas como perdidas, convertendo milhares de reais todos os meses no piloto automático."
+        }
+      },
       telemetry: {
         statusText: "Interligado à Instância hangarbox-oficial",
         metrics: [
@@ -866,6 +972,22 @@ export const DEFAULT_EXTENSIONS_CONFIG: ExtensionsConfig = {
       lockReason: "Módulo bloqueado na sua licença. Requer HangarBox Enterprise Suite.",
       badge: "🔒 BLOQUEADO",
       version: "v2.0.1",
+      apiSpec: {
+        apiName: "TikTok Events API v1.3",
+        protocol: "REST / HTTPS",
+        endpoint: "https://business-api.tiktok.com/open_api/v1.3/pixel/track/",
+        authType: "Access-Token Header Auth",
+        samplePayload: JSON.stringify({
+          event_source: "web",
+          event: "CompletePayment",
+          properties: { value: 29.90, currency: "BRL" }
+        }, null, 2),
+        humanDescription: {
+          whatItDoes: "Rastreia os usuários vindos de vídeos e anúncios do TikTok que clicam para assistir ou comprar episódios na sua loja.",
+          howItWorks: "Dispara eventos diretamente para a plataforma TikTok Ads, informando quais vídeos geraram mais compradores de séries.",
+          businessImpact: "Permite viralizar cortes e trailers de séries dubladas no TikTok Ads com anúncios de baixo custo altamente lucrativos."
+        }
+      },
       settings: {
         pixel_id: "",
         track_events: true,
@@ -884,6 +1006,21 @@ export const DEFAULT_EXTENSIONS_CONFIG: ExtensionsConfig = {
       lockReason: "Módulo bloqueado na sua licença. Requer HangarBox Enterprise Suite.",
       badge: "🔒 BLOQUEADO",
       version: "v3.1.0",
+      apiSpec: {
+        apiName: "Google Measurement Protocol & GTM Server API",
+        protocol: "REST / HTTPS",
+        endpoint: "https://www.google-analytics.com/mp/collect",
+        authType: "Measurement ID & API Secret",
+        samplePayload: JSON.stringify({
+          client_id: "ga4_89124.912401",
+          events: [{ name: "purchase", params: { transaction_id: "HB-1029", value: 29.90 } }]
+        }, null, 2),
+        humanDescription: {
+          whatItDoes: "Conecta sua loja aos relatórios do Google Analytics e ao container de tags do Google Tag Manager.",
+          howItWorks: "Envia eventos de navegação com dados de comércio eletrônico (Ecommerce Enhanced) para mapear o caminho do visitante.",
+          businessImpact: "Dá clareza cirúrgica sobre quais páginas, celulares e canais de tráfego geram mais dinheiro para você."
+        }
+      },
       settings: {
         ga4_measurement_id: "",
         gtm_container_id: "",
@@ -902,6 +1039,22 @@ export const DEFAULT_EXTENSIONS_CONFIG: ExtensionsConfig = {
       lockReason: "Módulo bloqueado na sua licença. Requer HangarBox Enterprise Suite.",
       badge: "🔒 BLOQUEADO",
       version: "v2.2.0",
+      apiSpec: {
+        apiName: "CRM Unified Sync API (RD Station / HubSpot)",
+        protocol: "REST / HTTPS",
+        endpoint: "https://api.rd.services/platform/conversions",
+        authType: "OAuth 2.0 Bearer Token",
+        samplePayload: JSON.stringify({
+          event_type: "CONVERSION",
+          event_family: "CDP",
+          payload: { email: "cliente@email.com", tags: ["comprador-serie-vip"] }
+        }, null, 2),
+        humanDescription: {
+          whatItDoes: "Salva o nome, e-mail e telefone de cada comprador no seu sistema de CRM favorito.",
+          howItWorks: "Sincroniza os contatos instantaneamente com tags da categoria da série comprada (Ação, Romance, Mafia, etc.).",
+          businessImpact: "Permite criar campanhas de e-mail marketing e lançar novas séries para quem já comprou antes com custo de anúncio zero."
+        }
+      },
       settings: {
         provider: "rd_station",
         webhook_url: "",
@@ -925,6 +1078,23 @@ export const DEFAULT_EXTENSIONS_CONFIG: ExtensionsConfig = {
       lockReason: "Módulo bloqueado na sua licença. Requer HangarBox Enterprise Suite.",
       badge: "🔒 BLOQUEADO",
       version: "v1.8.0",
+      apiSpec: {
+        apiName: "Utmify Attribution Engine API v1.8",
+        protocol: "REST / HTTPS",
+        endpoint: "https://api.utmify.com.br/v1/track",
+        authType: "API Key Header",
+        samplePayload: JSON.stringify({
+          order_id: "HB-9921",
+          utm_source: "facebook_ads",
+          utm_campaign: "campanha_mafia_esposa",
+          utm_content: "video_03_criativo"
+        }, null, 2),
+        humanDescription: {
+          whatItDoes: "Garante que você saiba com exatidão qual anúncio ou influencer gerou cada venda no Pix.",
+          howItWorks: "Captura os parâmetros da URL de chegada do cliente e preserva esses dados pelo funil inteiro até a emissão do Pix.",
+          businessImpact: "Evita desperdício de dinheiro em anúncios que não vendem e mostra onde você deve investir mais verba."
+        }
+      },
       settings: {
         preserve_utms: true,
         forward_to_checkout: true,
@@ -944,6 +1114,24 @@ export const DEFAULT_EXTENSIONS_CONFIG: ExtensionsConfig = {
       lockReason: "Módulo bloqueado na sua licença. Requer HangarBox Enterprise Suite.",
       badge: "🔒 BLOQUEADO",
       version: "v2.0.0",
+      apiSpec: {
+        apiName: "Webhook Dispatcher Engine v2.0",
+        protocol: "Webhook Event",
+        endpoint: "https://hooks.zapier.com/hooks/catch/9124/hangarbox",
+        authType: "X-Webhook-Secret HMAC Header",
+        samplePayload: JSON.stringify({
+          event: "ORDER_PAID",
+          order_id: "HB-8921",
+          serie_id: "eb7e83ea",
+          amount: 29.90,
+          customer_email: "cliente@gmail.com"
+        }, null, 2),
+        humanDescription: {
+          whatItDoes: "Liga sua loja a mais de 5.000 aplicativos na internet (Google Sheets, Discord, Telegram, Notion, ERPs).",
+          howItWorks: "Dispara uma requisição HTTP POST instantânea com os dados do pedido sempre que um Pix é pago.",
+          businessImpact: "Permite automatizar tarefas repetitivas da sua equipe sem precisar mexer no código do sistema."
+        }
+      },
       settings: {
         endpoint_url: "",
         secret_header: "",
@@ -964,6 +1152,24 @@ export const DEFAULT_EXTENSIONS_CONFIG: ExtensionsConfig = {
       lockReason: "Módulo bloqueado na sua licença. Requer HangarBox Enterprise Suite.",
       badge: "🔒 BLOQUEADO",
       version: "v1.5.0",
+      apiSpec: {
+        apiName: "Social Proof Engine API v1.5",
+        protocol: "REST / HTTPS",
+        endpoint: "https://proof.hangarbox.cloud/v1/recent-activity",
+        authType: "Storefront Token",
+        samplePayload: JSON.stringify({
+          customer_first_name: "Guilherme",
+          city: "Campinas",
+          state: "SP",
+          serie_title: "O quarterback perdido",
+          time_ago: "há 3 minutos"
+        }, null, 2),
+        humanDescription: {
+          whatItDoes: "Mostra pequenos avisos elegantes no canto da tela informando compras recentes de clientes reais em diversas cidades.",
+          howItWorks: "Calcula intervalos inteligentes de exibição baseados nas séries em alta para criar sensação de movimento e validação.",
+          businessImpact: "Ativa o gatilho da prova social, aumentando a segurança do visitante e elevando as vendas em até 15%."
+        }
+      },
       settings: {
         display_interval_seconds: 25,
         show_city: true,
@@ -983,6 +1189,22 @@ export const DEFAULT_EXTENSIONS_CONFIG: ExtensionsConfig = {
       lockReason: "Módulo bloqueado na sua licença. Requer HangarBox Enterprise Suite.",
       badge: "🔒 BLOQUEADO",
       version: "v1.2.0",
+      apiSpec: {
+        apiName: "Web Push Protocol API (OneSignal)",
+        protocol: "REST / HTTPS",
+        endpoint: "https://onesignal.com/api/v1/notifications",
+        authType: "REST API Key + VAPID Web Push",
+        samplePayload: JSON.stringify({
+          app_id: "hb-push-app-992",
+          headings: { pt: "🎬 Novos Episódios Dublados!" },
+          contents: { pt: "A nova temporada de 'Prefiro Morrer a Te Amar' já está liberada." }
+        }, null, 2),
+        humanDescription: {
+          whatItDoes: "Envia avisos na tela do celular ou computador do cliente mesmo quando o navegador está fechado.",
+          howItWorks: "Usa o protocolo nativo Web Push dos navegadores com Service Worker para entregar notificações instantâneas.",
+          businessImpact: "Permite reengajar quem já visitou sua loja com taxa de abertura de 40%, trazendo compradores de volta sem gastar em anúncios."
+        }
+      },
       settings: {
         onesignal_app_id: "",
         auto_prompt: false,
@@ -1013,6 +1235,7 @@ export async function fetchExtensionsConfig(): Promise<ExtensionsConfig> {
         isLocked,
         lockReason: merged[k].lockReason,
         badge: isLocked ? "🔒 BLOQUEADO" : (v.badge || merged[k].badge),
+        apiSpec: merged[k].apiSpec,
         telemetry: merged[k].telemetry,
         settings: { ...merged[k].settings, ...(v.settings || {}) },
       };
