@@ -9,6 +9,7 @@ import {
   Layers,
   Sparkles,
   Mail,
+  Boxes,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
@@ -37,6 +38,7 @@ import CouponsModule from "@/components/admin/CouponsModule";
 import EmailControlModule from "@/components/admin/EmailControlModule";
 import MarketingModule from "@/components/admin/MarketingModule";
 import SettingsModule from "@/components/admin/SettingsModule";
+import ExtensionsModule from "@/components/admin/ExtensionsModule";
 import ThemeColorsModule from "@/components/admin/ThemeColorsModule";
 import CarouselManager from "@/components/admin/CarouselManager";
 import UsageLimitsCard from "@/components/admin/UsageLimitsCard";
@@ -236,6 +238,17 @@ export const AdminDashboard: React.FC = () => {
               </TabsTrigger>
 
               <TabsTrigger
+                value="extensions"
+                className="gap-2 px-4 py-2.5 rounded-xl text-xs font-bold tracking-tight data-[state=active]:bg-zinc-950 data-[state=active]:text-white data-[state=active]:shadow-sm text-zinc-600 transition-all hover:text-zinc-950"
+              >
+                <Boxes size={15} />
+                <span>Extensões</span>
+                <span className="text-[9px] bg-rose-500 text-white font-extrabold px-1.5 py-0.2 rounded-full">
+                  HUB
+                </span>
+              </TabsTrigger>
+
+              <TabsTrigger
                 value="settings"
                 className="gap-2 px-4 py-2.5 rounded-xl text-xs font-bold tracking-tight data-[state=active]:bg-zinc-950 data-[state=active]:text-white data-[state=active]:shadow-sm text-zinc-600 transition-all hover:text-zinc-950"
               >
@@ -302,7 +315,12 @@ export const AdminDashboard: React.FC = () => {
             <MarketingModule orders={orders} />
           </TabsContent>
 
-          {/* Module 5: Settings & WhatsApp */}
+          {/* Module 5: Extensions Hub */}
+          <TabsContent value="extensions" className="m-0 focus-visible:outline-none">
+            <ExtensionsModule />
+          </TabsContent>
+
+          {/* Module 6: Settings & WhatsApp */}
           <TabsContent value="settings" className="m-0 focus-visible:outline-none">
             <SettingsModule />
           </TabsContent>

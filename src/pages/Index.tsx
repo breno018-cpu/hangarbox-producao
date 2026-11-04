@@ -11,6 +11,7 @@ import CheckoutModal from "@/components/CheckoutModal";
 import CartPage from "@/components/CartPage";
 import AgeVerificationModal from "@/components/AgeVerificationModal";
 import WhatsAppFloat from "@/components/WhatsAppFloat";
+import EvoraAIChatFloat from "@/components/EvoraAIChatFloat";
 import FullCatalogSection from "@/components/FullCatalogSection";
 import FiltersBar, { Filters, DEFAULT_FILTERS, applyFilters } from "@/components/FiltersBar";
 import RankingPage from "@/components/RankingPage";
@@ -480,6 +481,7 @@ const Index = () => {
       {footerModal && <FooterModal type={footerModal} onClose={() => setFooterModal(null)} />}
 
       <WhatsAppFloat />
+      <EvoraAIChatFloat />
     </div>
   );
 };

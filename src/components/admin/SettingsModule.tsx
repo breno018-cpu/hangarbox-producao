@@ -13,7 +13,9 @@ import {
   ArrowDown,
   Shield,
   Loader2,
+  Boxes,
 } from "lucide-react";
+import ExtensionsModule from "./ExtensionsModule";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -60,6 +62,7 @@ export const SettingsModule: React.FC = () => {
   // Nav tabs state
   const [navTabs, setNavTabs] = useState<NavTab[]>(DEFAULT_NAV_TABS);
   const [savingTabs, setSavingTabs] = useState(false);
+  const [subTab, setSubTab] = useState<"extensions" | "whatsapp" | "navigation" | "security">("extensions");
 
   useEffect(() => {
     // Load WhatsApp settings
@@ -216,8 +219,70 @@ export const SettingsModule: React.FC = () => {
 
   return (
     <div className="space-y-8 animate-fade-in max-w-5xl">
-      {/* 1. WhatsApp Notifications Gateway */}
-      <div className="rounded-2xl bg-white border border-slate-200/80 p-6 space-y-5 shadow-sm">
+      {/* Sub-navigation Header */}
+      <div className="flex items-center gap-1.5 p-1.5 bg-slate-100/90 border border-slate-200/80 rounded-2xl w-max max-w-full overflow-x-auto scrollbar-none shadow-xs">
+        <button
+          type="button"
+          onClick={() => setSubTab("extensions")}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold tracking-tight transition-all ${
+            subTab === "extensions"
+              ? "bg-zinc-950 text-white shadow-sm"
+              : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+          }`}
+        >
+          <Boxes size={15} />
+          <span>Extensões & Apps</span>
+          <span className="text-[9px] bg-rose-500 text-white font-extrabold px-1.5 py-0.2 rounded-full">
+            HUB
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setSubTab("whatsapp")}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold tracking-tight transition-all ${
+            subTab === "whatsapp"
+              ? "bg-zinc-950 text-white shadow-sm"
+              : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+          }`}
+        >
+          <MessageSquare size={15} />
+          <span>WhatsApp Gateway</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setSubTab("navigation")}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold tracking-tight transition-all ${
+            subTab === "navigation"
+              ? "bg-zinc-950 text-white shadow-sm"
+              : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+          }`}
+        >
+          <Navigation size={15} />
+          <span>Abas de Navegação</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setSubTab("security")}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold tracking-tight transition-all ${
+            subTab === "security"
+              ? "bg-zinc-950 text-white shadow-sm"
+              : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+          }`}
+        >
+          <Shield size={15} />
+          <span>Segurança & Manutenção</span>
+        </button>
+      </div>
+
+      {/* Subtab 1: Extensões & Apps */}
+      {subTab === "extensions" && <ExtensionsModule />}
+
+      {/* Subtab 2: WhatsApp Gateway */}
+      {subTab === "whatsapp" && (
+        <div className="rounded-2xl bg-white border border-slate-200/80 p-6 space-y-5 shadow-sm">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600">
             <MessageSquare size={18} />
@@ -314,9 +379,11 @@ export const SettingsModule: React.FC = () => {
           </div>
         </div>
       </div>
+    )}
 
-      {/* 2. Global Maintenance Mode */}
-      <div className="rounded-2xl bg-white border border-slate-200/80 p-6 space-y-4 shadow-sm">
+      {/* Subtab 4 part A: Global Maintenance Mode */}
+      {subTab === "security" && (
+        <div className="rounded-2xl bg-white border border-slate-200/80 p-6 space-y-4 shadow-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600">
@@ -368,9 +435,11 @@ export const SettingsModule: React.FC = () => {
           <span>{savingMaintenance ? "Salvando..." : "Salvar Modo Manutenção"}</span>
         </Button>
       </div>
+    )}
 
-      {/* 3. Navigation Tabs Manager */}
-      <div className="rounded-2xl bg-white border border-slate-200/80 p-6 space-y-4 shadow-sm">
+      {/* Subtab 3: Navigation Tabs Manager */}
+      {subTab === "navigation" && (
+        <div className="rounded-2xl bg-white border border-slate-200/80 p-6 space-y-4 shadow-sm">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-purple-50 border border-purple-200 flex items-center justify-center text-purple-600">
             <Navigation size={18} />
@@ -477,9 +546,11 @@ export const SettingsModule: React.FC = () => {
           </Button>
         </div>
       </div>
+    )}
 
-      {/* 4. Security & Password Change */}
-      <div className="rounded-2xl bg-white border border-slate-200/80 p-6 space-y-4 shadow-sm">
+      {/* Subtab 4 part B: Security & Password Change */}
+      {subTab === "security" && (
+        <div className="rounded-2xl bg-white border border-slate-200/80 p-6 space-y-4 shadow-sm">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600">
             <Lock size={18} />
@@ -532,7 +603,8 @@ export const SettingsModule: React.FC = () => {
             <span>{changingPass ? "Atualizando..." : "Atualizar Senha"}</span>
           </Button>
         </form>
-      </div>
+        </div>
+      )}
     </div>
   );
 };

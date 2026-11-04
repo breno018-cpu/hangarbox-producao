@@ -663,6 +663,285 @@ export async function saveTopWatchedConfig(config: TopWatchedConfig): Promise<vo
   }
 }
 
+// ========== EXTENSIONS & INTEGRATIONS ==========
+
+export interface ExtensionItem {
+  id: string;
+  name: string;
+  tagline: string;
+  category: "core" | "pixels" | "ai" | "crm" | "automation" | "security";
+  icon: string;
+  enabled: boolean;
+  isCore?: boolean;
+  badge?: string;
+  version: string;
+  settings: Record<string, any>;
+}
+
+export interface ExtensionsConfig {
+  extensions: Record<string, ExtensionItem>;
+  updated_at?: string;
+}
+
+export const DEFAULT_EXTENSIONS_CONFIG: ExtensionsConfig = {
+  extensions: {
+    pixel_collab: {
+      id: "pixel_collab",
+      name: "Pixel Collab",
+      tagline: "Plataforma central de governança, sincronização em tempo real e colaboração.",
+      category: "core",
+      icon: "Users2",
+      enabled: true,
+      isCore: true,
+      badge: "ATIVO (CORE)",
+      version: "v2.5.0-LTS",
+      settings: {
+        workspace_name: "HangarBox Hub",
+        workspace_id: "collab-hb-prod-01",
+        sync_mode: "realtime",
+        auto_audit_logs: true,
+        multi_device_auth: true,
+        cloud_backup_interval: "6h",
+      },
+    },
+    pixel_meta: {
+      id: "pixel_meta",
+      name: "Pixel-Meta (Facebook & Instagram)",
+      tagline: "Rastreamento avançado do Meta Ads com suporte ao Pixel e Conversions API (CAPI).",
+      category: "pixels",
+      icon: "Share2",
+      enabled: true,
+      badge: "META ADS",
+      version: "v4.1.0",
+      settings: {
+        pixel_id: "984783917460881",
+        capi_token: "",
+        test_event_code: "",
+        track_pageview: true,
+        track_viewcontent: true,
+        track_add_to_cart: true,
+        track_initiate_checkout: true,
+        track_purchase: true,
+        domain_verification: "",
+      },
+    },
+    pixel_evora: {
+      id: "pixel_evora",
+      name: "Pixel Évora (Atendente de IA)",
+      tagline: "Assistente virtual e concierge inteligente 24/7 para tirar dúvidas, indicar séries e fechar vendas.",
+      category: "ai",
+      icon: "Bot",
+      enabled: true,
+      badge: "IA CONVERSACIONAL",
+      version: "v3.0.0-AI",
+      settings: {
+        bot_name: "Évora IA",
+        greeting_message: "Olá! Sou a Évora, assistente oficial da HangarBox. Posso te ajudar a encontrar a série perfeita ou liberar seu acesso?",
+        tone: "persuasive",
+        show_floating_widget: true,
+        auto_recommend_catalog: true,
+        pix_help_enabled: true,
+        personality_prompt: "Você é a Évora, a assistente e concierge de IA oficial da HangarBox Séries. Seja amigável, ágil, entusiasta de séries e filmes, e ajude os clientes com recomendações e orientações sobre como comprar e assistir no player.",
+      },
+    },
+    crm_central: {
+      id: "crm_central",
+      name: "CRM & Gestão de Leads",
+      tagline: "Sincronização automática de compradores e carrinhos abandonados com RD Station, HubSpot ou Webhook.",
+      category: "crm",
+      icon: "Briefcase",
+      enabled: true,
+      badge: "CRM SYNC",
+      version: "v2.2.0",
+      settings: {
+        provider: "rd_station",
+        webhook_url: "",
+        api_key: "",
+        sync_paid_orders: true,
+        sync_pending_pix: true,
+        tag_buyers: "hangarbox-cliente",
+        tag_abandoned: "hangarbox-carrinho-abandonado",
+      },
+    },
+    tiktok_pixel: {
+      id: "tiktok_pixel",
+      name: "TikTok Ads Pixel",
+      tagline: "Pixel oficial do TikTok Ads para rastreamento de anúncios, visualizações de séries e conversões de vendas.",
+      category: "pixels",
+      icon: "Video",
+      enabled: false,
+      badge: "TIKTOK ADS",
+      version: "v2.0.1",
+      settings: {
+        pixel_id: "",
+        track_events: true,
+      },
+    },
+    google_suite: {
+      id: "google_suite",
+      name: "Google Tag Manager & GA4",
+      tagline: "Integração nativa com Google Analytics 4 e Google Tag Manager.",
+      category: "pixels",
+      icon: "BarChart3",
+      enabled: false,
+      badge: "GOOGLE SUITE",
+      version: "v3.1.0",
+      settings: {
+        ga4_measurement_id: "",
+        gtm_container_id: "",
+      },
+    },
+    utmify_tracker: {
+      id: "utmify_tracker",
+      name: "Utmify & Tracking de UTMs",
+      tagline: "Rastreamento e preservação de UTMs em todo o funil até o checkout para tracking de tráfego pago.",
+      category: "automation",
+      icon: "Target",
+      enabled: true,
+      badge: "ATRIBUIÇÃO",
+      version: "v1.8.0",
+      settings: {
+        preserve_utms: true,
+        forward_to_checkout: true,
+        utm_source_default: "direto",
+      },
+    },
+    whatsapp_recovery: {
+      id: "whatsapp_recovery",
+      name: "Recuperador WhatsApp Inteligente",
+      tagline: "Envio de lembretes automáticos com código Pix para pedidos pendentes via WhatsApp.",
+      category: "automation",
+      icon: "MessageCircle",
+      enabled: false,
+      badge: "RECUPERAÇÃO",
+      version: "v2.4.0",
+      settings: {
+        delay_minutes: 10,
+        custom_message: "Olá {nome}! Notamos que seu pedido da série {serie} está aguardando pagamento. Segue o código Pix para você assistir agora mesmo!",
+        include_pix_code: true,
+      },
+    },
+    webhook_engine: {
+      id: "webhook_engine",
+      name: "Central de Webhooks (Zapier / n8n / Make)",
+      tagline: "Disparo instantâneo de eventos HTTP POST para Zapier, n8n, Make ou automações próprias.",
+      category: "automation",
+      icon: "Webhook",
+      enabled: false,
+      badge: "INTEGRAÇÕES",
+      version: "v2.0.0",
+      settings: {
+        endpoint_url: "",
+        secret_header: "",
+        trigger_on_order_created: true,
+        trigger_on_order_paid: true,
+      },
+    },
+    social_proof_ai: {
+      id: "social_proof_ai",
+      name: "Prova Social Dinâmica IA",
+      tagline: "Notificações sutis no rodapé informando compras recentes para aumentar a conversão.",
+      category: "ai",
+      icon: "Sparkles",
+      enabled: true,
+      badge: "CONVERSÃO",
+      version: "v1.5.0",
+      settings: {
+        display_interval_seconds: 25,
+        show_city: true,
+        only_active_series: true,
+      },
+    },
+    antifraud_shield: {
+      id: "antifraud_shield",
+      name: "Radar Antifraude & Proteção",
+      tagline: "Proteção contra spam de Pix falsos, rate-limiting e bloqueio de e-mails descartáveis.",
+      category: "security",
+      icon: "ShieldAlert",
+      enabled: true,
+      badge: "SEGURANÇA",
+      version: "v2.1.0",
+      settings: {
+        rate_limit_per_minute: 5,
+        block_disposable_emails: true,
+        log_suspicious_activity: true,
+      },
+    },
+    push_notifications: {
+      id: "push_notifications",
+      name: "Notificações Push Web",
+      tagline: "Envio de notificações no navegador dos clientes para avisar de novos episódios e séries.",
+      category: "automation",
+      icon: "Bell",
+      enabled: false,
+      badge: "ENGAJAMENTO",
+      version: "v1.2.0",
+      settings: {
+        onesignal_app_id: "",
+        auto_prompt: false,
+      },
+    },
+  },
+};
+
+export async function fetchExtensionsConfig(): Promise<ExtensionsConfig> {
+  const { data, error } = await supabase
+    .from("site_settings")
+    .select("value")
+    .eq("key", "extensions_config")
+    .maybeSingle();
+
+  if (error || !data || !data.value) return DEFAULT_EXTENSIONS_CONFIG;
+  const val = data.value as any;
+  if (!val.extensions) return DEFAULT_EXTENSIONS_CONFIG;
+
+  const merged: Record<string, ExtensionItem> = { ...DEFAULT_EXTENSIONS_CONFIG.extensions };
+  for (const [k, v] of Object.entries(val.extensions as Record<string, ExtensionItem>)) {
+    if (merged[k]) {
+      merged[k] = {
+        ...merged[k],
+        ...v,
+        enabled: merged[k].isCore ? true : v.enabled,
+        settings: { ...merged[k].settings, ...(v.settings || {}) },
+      };
+    } else {
+      merged[k] = v;
+    }
+  }
+  return { extensions: merged, updated_at: val.updated_at };
+}
+
+export async function saveExtensionsConfig(config: ExtensionsConfig): Promise<void> {
+  const sanitized = { ...config };
+  if (sanitized.extensions?.pixel_collab) {
+    sanitized.extensions.pixel_collab.enabled = true;
+  }
+
+  const { data: existing } = await supabase
+    .from("site_settings")
+    .select("id")
+    .eq("key", "extensions_config")
+    .maybeSingle();
+
+  const payload = {
+    ...sanitized,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (existing) {
+    const { error } = await supabase
+      .from("site_settings")
+      .update({ value: payload as any } as any)
+      .eq("key", "extensions_config");
+    if (error) throw error;
+  } else {
+    const { error } = await supabase
+      .from("site_settings")
+      .insert({ key: "extensions_config", value: payload as any } as any);
+    if (error) throw error;
+  }
+}
+
 // ========== STATS ==========
 
 export async function fetchDashboardStats() {
