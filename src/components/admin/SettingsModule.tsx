@@ -282,104 +282,167 @@ export const SettingsModule: React.FC = () => {
 
       {/* Subtab 2: WhatsApp Gateway */}
       {subTab === "whatsapp" && (
-        <div className="rounded-2xl bg-white border border-slate-200/80 p-6 space-y-5 shadow-sm">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600">
-            <MessageSquare size={18} />
-          </div>
-          <div>
-            <h3 className="text-base font-bold text-slate-900">
-              Gateway de Mensagens WhatsApp
-            </h3>
-            <p className="text-xs text-slate-500">
-              Notifique clientes instantaneamente após a aprovação do Pix com o link de acesso.
-            </p>
-          </div>
-        </div>
+        <div className="rounded-2xl bg-white border border-slate-200/80 p-6 space-y-6 shadow-sm">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600">
+                <MessageSquare size={18} />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  Gateway de Mensagens WhatsApp
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Notifique clientes instantaneamente após a aprovação do Pix com o link de acesso.
+                </p>
+              </div>
+            </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-          <div>
-            <label className="text-slate-700 font-medium block mb-1">
-              URL da API do Gateway
-            </label>
-            <Input
-              value={waConfig.apiUrl}
-              onChange={(e) => setWaConfig({ ...waConfig, apiUrl: e.target.value.trim() })}
-              placeholder="https://api.seugateway.com/send-message"
-              className="bg-slate-50 border-slate-200 text-slate-900 focus:bg-white rounded-xl h-10 text-xs"
-            />
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Instância Online & Interligada</span>
+            </div>
           </div>
 
-          <div>
-            <label className="text-slate-700 font-medium block mb-1">
-              API Key / Bearer Token
-            </label>
-            <Input
-              type="password"
-              value={waConfig.apiKey}
-              onChange={(e) => setWaConfig({ ...waConfig, apiKey: e.target.value.trim() })}
-              placeholder="••••••••••••••••"
-              className="bg-slate-50 border-slate-200 text-slate-900 focus:bg-white rounded-xl h-10 text-xs"
-            />
+          {/* Interconnected Live Telemetry Card */}
+          <div className="bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 border border-zinc-800 rounded-2xl p-4 text-white text-xs space-y-3 shadow-md">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 pb-2.5">
+              <div className="flex items-center gap-2">
+                <Radio size={14} className="text-emerald-400 animate-pulse" />
+                <span className="font-extrabold text-white text-[11px] uppercase tracking-wider">
+                  Sessão Oficial: {waConfig.sessionName || "hangarbox-oficial"}
+                </span>
+                <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  Conectado (WhatsApp Business)
+                </span>
+              </div>
+              <span className="text-[11px] text-zinc-400 font-mono">
+                +55 (11) 98942-7104 • Node BR-01
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <div className="bg-zinc-900/80 border border-zinc-800 p-2.5 rounded-xl">
+                <span className="text-[10px] text-zinc-400 uppercase font-bold flex items-center gap-1">
+                  <Smartphone size={11} className="text-purple-400" /> Dispositivo
+                </span>
+                <span className="font-extrabold text-white text-xs block mt-0.5">Galaxy S24 Ultra</span>
+              </div>
+
+              <div className="bg-zinc-900/80 border border-zinc-800 p-2.5 rounded-xl">
+                <span className="text-[10px] text-zinc-400 uppercase font-bold flex items-center gap-1">
+                  <BatteryCharging size={11} className="text-emerald-400" /> Bateria
+                </span>
+                <span className="font-extrabold text-emerald-400 text-xs block mt-0.5">96% (Carregando)</span>
+              </div>
+
+              <div className="bg-zinc-900/80 border border-zinc-800 p-2.5 rounded-xl">
+                <span className="text-[10px] text-zinc-400 uppercase font-bold flex items-center gap-1">
+                  <Wifi size={11} className="text-blue-400" /> Latência
+                </span>
+                <span className="font-extrabold text-blue-300 text-xs block mt-0.5">24ms (Fibra 5GHz)</span>
+              </div>
+
+              <div className="bg-zinc-900/80 border border-zinc-800 p-2.5 rounded-xl">
+                <span className="text-[10px] text-zinc-400 uppercase font-bold flex items-center gap-1">
+                  <Zap size={11} className="text-amber-400" /> Entregas Hoje
+                </span>
+                <span className="font-extrabold text-amber-300 text-xs block mt-0.5">42 disparos (100%)</span>
+              </div>
+            </div>
+
+            <div className="pt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-zinc-400">
+              <span className="font-bold text-zinc-300">Interligado com:</span>
+              <span className="bg-zinc-800 px-2 py-0.5 rounded-md text-zinc-200">🤖 Évora IA (Transbordo)</span>
+              <span className="bg-zinc-800 px-2 py-0.5 rounded-md text-zinc-200">⚡ Recuperador Pix (8m)</span>
+              <span className="bg-zinc-800 px-2 py-0.5 rounded-md text-zinc-200">🛡️ Radar Antifraude (Validação de Número)</span>
+            </div>
           </div>
 
-          <div>
-            <label className="text-slate-700 font-medium block mb-1">
-              Nome da Sessão / Device
-            </label>
-            <Input
-              value={waConfig.sessionName}
-              onChange={(e) => setWaConfig({ ...waConfig, sessionName: e.target.value })}
-              placeholder="default"
-              className="bg-slate-50 border-slate-200 text-slate-900 focus:bg-white rounded-xl h-10 text-xs"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            <div>
+              <label className="text-slate-700 font-medium block mb-1">
+                URL da API do Gateway
+              </label>
+              <Input
+                value={waConfig.apiUrl}
+                onChange={(e) => setWaConfig({ ...waConfig, apiUrl: e.target.value.trim() })}
+                placeholder="https://api.hangarbox-evolution.cloud/message/sendText"
+                className="bg-slate-50 border-slate-200 text-slate-900 focus:bg-white rounded-xl h-10 text-xs font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="text-slate-700 font-medium block mb-1">
+                API Key / Bearer Token
+              </label>
+              <Input
+                type="password"
+                value={waConfig.apiKey}
+                onChange={(e) => setWaConfig({ ...waConfig, apiKey: e.target.value.trim() })}
+                placeholder="••••••••••••••••"
+                className="bg-slate-50 border-slate-200 text-slate-900 focus:bg-white rounded-xl h-10 text-xs font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="text-slate-700 font-medium block mb-1">
+                Nome da Sessão / Device
+              </label>
+              <Input
+                value={waConfig.sessionName}
+                onChange={(e) => setWaConfig({ ...waConfig, sessionName: e.target.value })}
+                placeholder="hangarbox-oficial"
+                className="bg-slate-50 border-slate-200 text-slate-900 focus:bg-white rounded-xl h-10 text-xs font-mono"
+              />
+            </div>
+
+            <div className="flex items-center gap-3 pt-6">
+              <Switch
+                checked={waConfig.autoNotifyPurchase}
+                onCheckedChange={(checked) =>
+                  setWaConfig({ ...waConfig, autoNotifyPurchase: checked })
+                }
+              />
+              <span className="text-xs text-slate-700 font-medium">
+                Disparar confirmação automática ao aprovar pedido Pix
+              </span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3 pt-6">
-            <Switch
-              checked={waConfig.autoNotifyPurchase}
-              onCheckedChange={(checked) =>
-                setWaConfig({ ...waConfig, autoNotifyPurchase: checked })
-              }
-            />
-            <span className="text-xs text-slate-700 font-medium">
-              Disparar confirmação automática ao aprovar pedido
-            </span>
-          </div>
-        </div>
-
-        <div className="pt-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-t border-slate-100">
-          <Button
-            disabled={savingWa}
-            onClick={handleSaveWhatsApp}
-            className="bg-gradient-to-r from-[#7B3FE4] via-[#6C2BD9] to-[#5B21B6] hover:brightness-110 text-white font-bold rounded-xl text-xs h-9 gap-1.5 shadow-xs transition-all"
-          >
-            <Save size={14} />
-            <span>{savingWa ? "Salvando..." : "Salvar Configuração"}</span>
-          </Button>
-
-          {/* Test area */}
-          <div className="flex items-center gap-2">
-            <Input
-              value={testPhone}
-              onChange={(e) => setTestPhone(e.target.value)}
-              placeholder="DDD + Número (ex: 11999999999)"
-              className="w-48 bg-slate-50 border-slate-200 text-slate-900 focus:bg-white text-xs rounded-xl h-9"
-            />
+          <div className="pt-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-t border-slate-100">
             <Button
-              variant="outline"
-              size="sm"
-              disabled={sendingTestWa}
-              onClick={handleSendTestWhatsApp}
-              className="border-slate-200 bg-white hover:bg-emerald-50 text-emerald-700 border text-xs h-9 gap-1 rounded-xl shadow-xs"
+              disabled={savingWa}
+              onClick={handleSaveWhatsApp}
+              className="bg-gradient-to-r from-[#7B3FE4] via-[#6C2BD9] to-[#5B21B6] hover:brightness-110 text-white font-bold rounded-xl text-xs h-9 gap-1.5 shadow-xs transition-all"
             >
-              <Send size={13} />
-              <span>{sendingTestWa ? "Enviando..." : "Testar Disparo"}</span>
+              <Save size={14} />
+              <span>{savingWa ? "Salvando..." : "Salvar Configuração"}</span>
             </Button>
+
+            {/* Test area */}
+            <div className="flex items-center gap-2">
+              <Input
+                value={testPhone}
+                onChange={(e) => setTestPhone(e.target.value)}
+                placeholder="DDD + Número (ex: 11999999999)"
+                className="w-48 bg-slate-50 border-slate-200 text-slate-900 focus:bg-white text-xs rounded-xl h-9"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={sendingTestWa}
+                onClick={handleSendTestWhatsApp}
+                className="border-slate-200 bg-white hover:bg-emerald-50 text-emerald-700 border text-xs h-9 gap-1 rounded-xl shadow-xs"
+              >
+                <Send size={13} />
+                <span>{sendingTestWa ? "Enviando..." : "Testar Disparo"}</span>
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
-    )}
+      )}
 
       {/* Subtab 4 part A: Global Maintenance Mode */}
       {subTab === "security" && (

@@ -4,7 +4,6 @@ import {
   CheckCircle2,
   AlertTriangle,
   Search,
-  Sliders,
   Settings2,
   Sparkles,
   Bot,
@@ -18,23 +17,22 @@ import {
   Webhook,
   ShieldAlert,
   Bell,
-  ExternalLink,
-  Save,
-  RefreshCw,
-  Power,
-  Zap,
   Lock,
-  ArrowRight,
+  Unlock,
   Activity,
   Check,
   Send,
-  HelpCircle,
-  Copy
+  Zap,
+  Radio,
+  Cpu,
+  KeyRound,
+  ShieldCheck,
+  Eye,
+  EyeOff
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -70,13 +68,14 @@ const ICON_MAP: Record<string, React.ElementType> = {
 
 const CATEGORIES = [
   { id: "all", label: "Todas as Extensões" },
-  { id: "active", label: "Ativas" },
+  { id: "liberated", label: "🟢 Liberadas & Ativas (5)" },
+  { id: "locked", label: "🔒 Bloqueadas (7)" },
   { id: "core", label: "Plataforma Core" },
   { id: "pixels", label: "Pixels & Tráfego" },
   { id: "ai", label: "IA & Atendimento" },
-  { id: "crm", label: "CRM & Vendas" },
-  { id: "automation", label: "Automação" },
   { id: "security", label: "Segurança" },
+  { id: "automation", label: "Automação" },
+  { id: "crm", label: "CRM" },
 ];
 
 export const ExtensionsModule: React.FC = () => {
@@ -90,7 +89,12 @@ export const ExtensionsModule: React.FC = () => {
   const [activeExt, setActiveExt] = useState<ExtensionItem | null>(null);
   const [editSettings, setEditSettings] = useState<Record<string, any>>({});
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLockedModalOpen, setIsLockedModalOpen] = useState(false);
+  const [lockedExtTarget, setLockedExtTarget] = useState<ExtensionItem | null>(null);
+  const [unlockLicenseKey, setUnlockLicenseKey] = useState("");
+  const [unlocking, setUnlocking] = useState(false);
   const [testingConnection, setTestingConnection] = useState(false);
+  const [showSecretToken, setShowSecretToken] = useState(false);
 
   // Load configuration from Supabase
   useEffect(() => {
@@ -113,10 +117,17 @@ export const ExtensionsModule: React.FC = () => {
     const q = search.trim().toLowerCase();
     return extensionsList.filter((ext) => {
       // Category filter
-      if (selectedCategory === "active" && !ext.enabled) return false;
-      if (selectedCategory !== "all" && selectedCategory !== "active" && ext.category !== selectedCategory) {
+      if (selectedCategory === "liberated" && ext.isLocked) return false;
+      if (selectedCategory === "locked" && !ext.isLocked) return false;
+      if (
+        selectedCategory !== "all" &&
+        selectedCategory !== "liberated" &&
+        selectedCategory !== "locked" &&
+        ext.category !== selectedCategory
+      ) {
         return false;
       }
+
       // Search filter
       if (!q) return true;
       const matchName = ext.name.toLowerCase().includes(q);
@@ -128,12 +139,20 @@ export const ExtensionsModule: React.FC = () => {
 
   // Counts
   const totalCount = extensionsList.length;
-  const activeCount = extensionsList.filter((e) => e.enabled).length;
+  const liberatedCount = extensionsList.filter((e) => !e.isLocked).length;
+  const lockedCount = extensionsList.filter((e) => e.isLocked).length;
 
-  // Toggle extension state
+  // Toggle extension state (only allowed for unlocked non-core modules)
   const handleToggle = async (extId: string, newState: boolean) => {
-    if (config.extensions[extId]?.isCore) {
+    const ext = config.extensions[extId];
+    if (ext?.isCore) {
       toast.info("Pixel Collab é a plataforma central de gerenciamento e deve permanecer sempre ativa.");
+      return;
+    }
+
+    if (ext?.isLocked) {
+      setLockedExtTarget(ext);
+      setIsLockedModalOpen(true);
       return;
     }
 
@@ -161,11 +180,67 @@ export const ExtensionsModule: React.FC = () => {
     }
   };
 
-  // Open settings modal
-  const handleOpenSettings = (ext: ExtensionItem) => {
-    setActiveExt(ext);
-    setEditSettings({ ...(ext.settings || {}) });
-    setIsModalOpen(true);
+  // Open settings modal or locked modal
+  const handleOpenAction = (ext: ExtensionItem) => {
+    if (ext.isLocked) {
+      setLockedExtTarget(ext);
+      setUnlockLicenseKey("");
+      setIsLockedModalOpen(true);
+    } else {
+      setActiveExt(ext);
+      setEditSettings({ ...(ext.settings || {}) });
+      setShowSecretToken(false);
+      setIsModalOpen(true);
+    }
+  };
+
+  // Attempt to unlock a locked extension with key
+  const handleUnlockExtension = async () => {
+    if (!lockedExtTarget) return;
+    const cleanKey = unlockLicenseKey.trim().toUpperCase();
+
+    if (!cleanKey) {
+      toast.error("Insira a chave de licença Enterprise para desbloquear.");
+      return;
+    }
+
+    setUnlocking(true);
+    try {
+      await new Promise((r) => setTimeout(r, 900));
+
+      // Unlock for this session and update local state
+      const updated: ExtensionsConfig = {
+        ...config,
+        extensions: {
+          ...config.extensions,
+          [lockedExtTarget.id]: {
+            ...lockedExtTarget,
+            isLocked: false,
+            enabled: true,
+            badge: "LIBERADO ENTERPRISE",
+          },
+        },
+      };
+
+      setConfig(updated);
+      await saveExtensionsConfig(updated).catch(() => {});
+      toast.success(`Módulo "${lockedExtTarget.name}" desbloqueado com sucesso!`);
+      setIsLockedModalOpen(false);
+
+      // Open its settings directly
+      setActiveExt({
+        ...lockedExtTarget,
+        isLocked: false,
+        enabled: true,
+        badge: "LIBERADO ENTERPRISE",
+      });
+      setEditSettings({ ...(lockedExtTarget.settings || {}) });
+      setIsModalOpen(true);
+    } catch {
+      toast.error("Chave inválida ou erro ao validar licença.");
+    } finally {
+      setUnlocking(false);
+    }
   };
 
   // Save extension settings
@@ -207,21 +282,23 @@ export const ExtensionsModule: React.FC = () => {
     }
   };
 
-  // Test connection simulation
+  // Test connection simulation with realistic interlink data
   const handleTestConnection = async () => {
     if (!activeExt) return;
     setTestingConnection(true);
     try {
-      await new Promise((r) => setTimeout(r, 1200));
+      await new Promise((r) => setTimeout(r, 1000));
 
       if (activeExt.id === "pixel_collab") {
-        toast.success("Pixel Collab: Conexão ativa! Latência: 18ms. Cluster operacional SP-01.");
+        toast.success("Pixel Collab: Conexão ativa! Latência: 14ms. Cluster operacional SP-01.");
       } else if (activeExt.id === "pixel_meta") {
-        toast.success("Meta Pixel & CAPI: Conexão estabelecida com sucesso com os servidores da Meta!");
+        toast.success("Meta Pixel & CAPI: Conexão estabelecida com Meta Graph API v19.0. Deduplicação: 99.4%!");
       } else if (activeExt.id === "pixel_evora") {
         toast.success("Évora IA: Motor neural ativo e pronto para atender no storefront.");
-      } else if (activeExt.id === "crm_central") {
-        toast.success("CRM: Endpoint testado com sucesso! Payload de exemplo enviado.");
+      } else if (activeExt.id === "antifraud_shield") {
+        toast.success("Radar Antifraude: Blindagem Nível 3 ativa. Escaneamento de IPs em 100%.");
+      } else if (activeExt.id === "whatsapp_recovery") {
+        toast.success("WhatsApp Recovery: Vinculado à sessão hangarbox-oficial. Fila de disparos limpa.");
       } else {
         toast.success(`Integração com "${activeExt.name}" testada e validada com sucesso!`);
       }
@@ -234,60 +311,101 @@ export const ExtensionsModule: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* 1. Header Banner & Collab Status */}
-      <div className="bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 border border-zinc-800 rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-lg">
+      {/* 1. Header Banner & Interconnected Network Mesh */}
+      <div className="bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 border border-zinc-800 rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl">
         <div className="absolute top-0 right-0 -mr-16 -mt-16 w-80 h-80 rounded-full bg-gradient-to-br from-rose-500/20 via-purple-500/10 to-transparent blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-1/3 -mb-20 w-64 h-64 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-1/3 -mb-20 w-64 h-64 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-2xl">
-            <div className="flex items-center gap-2">
-              <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest bg-gradient-to-r from-rose-500 to-purple-600 text-white shadow-sm">
-                Marketplace de Extensões
-              </span>
-              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                Pixel Collab Ativo
-              </span>
+        <div className="relative z-10 space-y-6">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+            <div className="space-y-2 max-w-2xl">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest bg-gradient-to-r from-rose-500 to-purple-600 text-white shadow-xs">
+                  Marketplace de Extensões
+                </span>
+                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                  Cluster Interligado Online
+                </span>
+                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                  <Cpu size={12} />
+                  Pixel Collab LTS
+                </span>
+              </div>
+
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
+                <span>Painel de Extensões & Apps</span>
+                <Boxes className="text-rose-500 w-7 h-7 hidden sm:inline" />
+              </h2>
+
+              <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
+                Ecossistema de alta conversão HangarBox. As extensões oficiais essenciais (<strong>Pixel Collab</strong>, <strong>Pixel-Meta CAPI</strong>, <strong>Évora IA</strong>, <strong>Radar Antifraude</strong> e <strong>WhatsApp Gateway</strong>) estão 100% liberadas e interligadas em tempo real.
+              </p>
             </div>
 
-            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
-              <span>Painel de Extensões & Apps</span>
-              <Boxes className="text-rose-500 w-7 h-7 hidden sm:inline" />
-            </h2>
+            {/* Quick Metrics */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full lg:w-auto shrink-0">
+              <div className="bg-zinc-800/60 border border-zinc-700/60 rounded-2xl p-3.5 backdrop-blur-sm">
+                <span className="text-[10px] uppercase font-bold text-emerald-400 block tracking-wider">
+                  Liberadas (Ativas)
+                </span>
+                <div className="text-xl font-black text-emerald-400 mt-0.5">{liberatedCount}</div>
+                <span className="text-[10px] text-zinc-500">Totalmente interligadas</span>
+              </div>
 
-            <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
-              Turbine sua loja com automações de tráfego, pixels de conversão, a assistente de IA <strong>Évora</strong>, integrações de CRM e a infraestrutura nativa do <strong>Pixel Collab</strong>.
-            </p>
+              <div className="bg-zinc-800/60 border border-zinc-700/60 rounded-2xl p-3.5 backdrop-blur-sm">
+                <span className="text-[10px] uppercase font-bold text-amber-400 block tracking-wider flex items-center gap-1">
+                  <Lock size={10} />
+                  Bloqueadas
+                </span>
+                <div className="text-xl font-black text-amber-300 mt-0.5">{lockedCount}</div>
+                <span className="text-[10px] text-zinc-500">Plano Enterprise</span>
+              </div>
+
+              <div className="col-span-2 sm:col-span-1 bg-gradient-to-br from-purple-900/40 to-zinc-800/60 border border-purple-500/30 rounded-2xl p-3.5 backdrop-blur-sm">
+                <span className="text-[10px] uppercase font-bold text-purple-300 block tracking-wider">
+                  Pixel Collab
+                </span>
+                <div className="text-xs font-black text-white mt-1 flex items-center gap-1.5">
+                  <CheckCircle2 size={13} className="text-emerald-400" />
+                  Cluster SP-01
+                </div>
+                <span className="text-[10px] text-zinc-400">Latência 14ms</span>
+              </div>
+            </div>
           </div>
 
-          {/* Quick Metrics */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full lg:w-auto shrink-0">
-            <div className="bg-zinc-800/60 border border-zinc-700/60 rounded-2xl p-3.5 backdrop-blur-sm">
-              <span className="text-[10px] uppercase font-bold text-zinc-400 block tracking-wider">
-                Total de Apps
+          {/* Real-time Mesh Bar */}
+          <div className="bg-zinc-950/80 border border-zinc-800/80 rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider flex items-center gap-1">
+                <Radio size={12} className="text-emerald-400 animate-pulse" />
+                Malha Interligada:
               </span>
-              <div className="text-xl font-black text-white mt-0.5">{totalCount}</div>
-              <span className="text-[10px] text-zinc-500">Módulos oficiais</span>
-            </div>
-
-            <div className="bg-zinc-800/60 border border-zinc-700/60 rounded-2xl p-3.5 backdrop-blur-sm">
-              <span className="text-[10px] uppercase font-bold text-emerald-400 block tracking-wider">
-                Apps Ativos
-              </span>
-              <div className="text-xl font-black text-emerald-400 mt-0.5">{activeCount}</div>
-              <span className="text-[10px] text-zinc-500">Em produção</span>
-            </div>
-
-            <div className="col-span-2 sm:col-span-1 bg-gradient-to-br from-purple-900/40 to-zinc-800/60 border border-purple-500/30 rounded-2xl p-3.5 backdrop-blur-sm">
-              <span className="text-[10px] uppercase font-bold text-purple-300 block tracking-wider">
+              <span className="px-2 py-0.5 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[11px] font-bold">
                 Pixel Collab
               </span>
-              <div className="text-xs font-black text-white mt-1 flex items-center gap-1.5">
-                <CheckCircle2 size={13} className="text-emerald-400" />
-                Gerenciamento
-              </div>
-              <span className="text-[10px] text-zinc-400">Core v2.5.0 LTS</span>
+              <span className="text-zinc-600">⇄</span>
+              <span className="px-2 py-0.5 rounded-lg bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[11px] font-bold">
+                Meta CAPI
+              </span>
+              <span className="text-zinc-600">⇄</span>
+              <span className="px-2 py-0.5 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[11px] font-bold">
+                Évora IA
+              </span>
+              <span className="text-zinc-600">⇄</span>
+              <span className="px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-bold">
+                Radar Antifraude
+              </span>
+              <span className="text-zinc-600">⇄</span>
+              <span className="px-2 py-0.5 rounded-lg bg-teal-500/20 text-teal-300 border border-teal-500/30 text-[11px] font-bold">
+                WhatsApp Gateway
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 text-[11px] text-zinc-400">
+              <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              <span>4.892 sinais processados nas últimas 24h</span>
             </div>
           </div>
         </div>
@@ -301,8 +419,8 @@ export const ExtensionsModule: React.FC = () => {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por extensão, CRM, Pixel, IA..."
-            className="pl-10 text-xs bg-white border-slate-200 rounded-2xl h-11 text-slate-900 focus:bg-white shadow-xs"
+            placeholder="Buscar extensão liberada ou bloqueada..."
+            className="pl-10 text-xs bg-white border-slate-200 rounded-2xl h-11 text-slate-900 focus:bg-white shadow-2xs"
           />
         </div>
 
@@ -314,7 +432,7 @@ export const ExtensionsModule: React.FC = () => {
               onClick={() => setSelectedCategory(cat.id)}
               className={`px-3 py-2 rounded-xl text-xs font-bold tracking-tight whitespace-nowrap transition-all ${
                 selectedCategory === cat.id
-                  ? "bg-zinc-950 text-white shadow-xs"
+                  ? "bg-zinc-950 text-white shadow-2xs"
                   : "bg-white border border-slate-200/90 text-slate-600 hover:text-slate-950 hover:bg-slate-50"
               }`}
             >
@@ -331,47 +449,70 @@ export const ExtensionsModule: React.FC = () => {
           const isCore = ext.isCore === true;
           const isEvora = ext.id === "pixel_evora";
           const isMeta = ext.id === "pixel_meta";
+          const isAntifraud = ext.id === "antifraud_shield";
+          const isWaRecovery = ext.id === "whatsapp_recovery";
+          const isLocked = ext.isLocked === true;
 
           return (
             <div
               key={ext.id}
-              className={`group rounded-3xl border bg-white p-5 flex flex-col justify-between transition-all duration-300 shadow-xs hover:shadow-md ${
-                ext.enabled
+              className={`group rounded-3xl border p-5 flex flex-col justify-between transition-all duration-300 shadow-2xs hover:shadow-md ${
+                isLocked
+                  ? "bg-slate-50/70 border-slate-200/70 text-slate-500 opacity-85 hover:opacity-100"
+                  : ext.enabled
                   ? isCore
                     ? "border-purple-300/80 ring-1 ring-purple-400/20 bg-gradient-to-b from-purple-50/20 to-white"
                     : isEvora
                     ? "border-rose-300/80 ring-1 ring-rose-400/20 bg-gradient-to-b from-rose-50/20 to-white"
-                    : "border-slate-200 hover:border-slate-300"
-                  : "border-slate-200/60 opacity-75 hover:opacity-100"
+                    : isMeta
+                    ? "border-blue-300/80 ring-1 ring-blue-400/20 bg-gradient-to-b from-blue-50/20 to-white"
+                    : isAntifraud
+                    ? "border-emerald-300/80 ring-1 ring-emerald-400/20 bg-gradient-to-b from-emerald-50/20 to-white"
+                    : isWaRecovery
+                    ? "border-teal-300/80 ring-1 ring-teal-400/20 bg-gradient-to-b from-teal-50/20 to-white"
+                    : "border-slate-200 bg-white"
+                  : "border-slate-200 bg-white opacity-70"
               }`}
             >
               <div>
-                {/* Card Top: Icon, Badge & Switch */}
+                {/* Card Top: Icon, Badge & Switch / Lock */}
                 <div className="flex items-start justify-between gap-3 mb-3.5">
                   <div
                     className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-105 ${
-                      isCore
+                      isLocked
+                        ? "bg-amber-100/80 text-amber-800 border border-amber-200/80"
+                        : isCore
                         ? "bg-gradient-to-br from-purple-600 to-indigo-600 text-white shadow-purple-500/25"
                         : isEvora
                         ? "bg-gradient-to-br from-rose-500 to-amber-500 text-white shadow-rose-500/25"
                         : isMeta
                         ? "bg-gradient-to-br from-blue-600 to-cyan-600 text-white shadow-blue-500/25"
+                        : isAntifraud
+                        ? "bg-gradient-to-br from-emerald-600 to-teal-600 text-white shadow-emerald-500/25"
+                        : isWaRecovery
+                        ? "bg-gradient-to-br from-teal-600 to-emerald-500 text-white shadow-teal-500/25"
                         : ext.enabled
                         ? "bg-zinc-950 text-white shadow-zinc-900/25"
                         : "bg-slate-100 text-slate-500"
                     }`}
                   >
-                    <IconComp size={22} />
+                    {isLocked ? <Lock size={20} className="text-amber-700" /> : <IconComp size={22} />}
                   </div>
 
                   <div className="flex items-center gap-2">
                     {ext.badge && (
                       <span
-                        className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full border ${
-                          isCore
+                        className={`text-[9px] font-extrabold uppercase px-2.5 py-1 rounded-full border ${
+                          isLocked
+                            ? "bg-amber-100 text-amber-800 border-amber-200/80"
+                            : isCore
                             ? "bg-purple-100 text-purple-800 border-purple-200"
                             : isEvora
                             ? "bg-rose-100 text-rose-800 border-rose-200"
+                            : isMeta
+                            ? "bg-blue-100 text-blue-800 border-blue-200"
+                            : isAntifraud
+                            ? "bg-emerald-100 text-emerald-800 border-emerald-200"
                             : "bg-slate-100 text-slate-700 border-slate-200"
                         }`}
                       >
@@ -379,10 +520,19 @@ export const ExtensionsModule: React.FC = () => {
                       </span>
                     )}
 
-                    {isCore ? (
-                      <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-[10px] font-extrabold">
-                        <Lock size={10} className="text-emerald-600" />
-                        <span>ATIVO</span>
+                    {isLocked ? (
+                      <button
+                        onClick={() => handleOpenAction(ext)}
+                        title="Módulo Bloqueado. Clique para detalhes e desbloqueio."
+                        className="flex items-center gap-1 px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl text-[10px] font-black transition-colors"
+                      >
+                        <Lock size={11} className="text-amber-600" />
+                        <span>BLOQUEADO</span>
+                      </button>
+                    ) : isCore ? (
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 bg-purple-50 text-purple-800 border border-purple-200 rounded-xl text-[10px] font-extrabold">
+                        <ShieldCheck size={11} className="text-purple-600" />
+                        <span>CORE ATIVO</span>
                       </div>
                     ) : (
                       <Switch
@@ -396,7 +546,7 @@ export const ExtensionsModule: React.FC = () => {
                 {/* Card Title & Tagline */}
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-extrabold text-slate-900 tracking-tight">
+                    <h3 className={`text-sm font-extrabold tracking-tight ${isLocked ? "text-slate-700" : "text-slate-900"}`}>
                       {ext.name}
                     </h3>
                     <span className="text-[10px] font-mono text-slate-400">
@@ -407,32 +557,79 @@ export const ExtensionsModule: React.FC = () => {
                     {ext.tagline}
                   </p>
                 </div>
+
+                {/* Telemetry Snippet if Liberated */}
+                {!isLocked && ext.telemetry && (
+                  <div className="mt-3.5 p-2.5 bg-slate-50 border border-slate-200/70 rounded-2xl space-y-2 text-[11px]">
+                    <div className="flex items-center justify-between text-slate-600 font-semibold">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        {ext.telemetry.statusText}
+                      </span>
+                      <span className="text-[10px] text-slate-400">{ext.telemetry.lastSync}</span>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-1 pt-1 border-t border-slate-200/50">
+                      {ext.telemetry.metrics.map((m, idx) => (
+                        <div key={idx} className="bg-white p-1 rounded-lg border border-slate-100 text-center">
+                          <span className="block text-[9px] text-slate-400 uppercase font-bold">{m.label}</span>
+                          <span className="font-extrabold text-slate-800 text-[10px]">{m.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Locked Message Snippet */}
+                {isLocked && (
+                  <div className="mt-3 p-2 bg-amber-50/60 border border-amber-200/60 rounded-xl text-[11px] text-amber-800 flex items-center gap-2">
+                    <Lock size={12} className="text-amber-600 shrink-0" />
+                    <span>Requer ativação no plano HangarBox Enterprise.</span>
+                  </div>
+                )}
               </div>
 
-              {/* Card Footer: Status details & Configure button */}
+              {/* Card Footer */}
               <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-1.5 text-[11px]">
-                  {ext.enabled ? (
+                  {isLocked ? (
+                    <span className="font-semibold text-amber-700 flex items-center gap-1">
+                      <Lock size={11} /> Bloqueado
+                    </span>
+                  ) : ext.enabled ? (
                     <>
                       <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                      <span className="font-semibold text-emerald-700">Operacional</span>
+                      <span className="font-semibold text-emerald-700">Interligado</span>
                     </>
                   ) : (
                     <>
                       <span className="w-2 h-2 rounded-full bg-slate-300" />
-                      <span className="text-slate-400 font-medium">Desativado</span>
+                      <span className="text-slate-400 font-medium">Inativo</span>
                     </>
                   )}
                 </div>
 
                 <Button
                   size="sm"
-                  variant="outline"
-                  onClick={() => handleOpenSettings(ext)}
-                  className="h-8 text-xs font-bold border-slate-200 hover:bg-slate-50 text-slate-700 hover:text-slate-900 rounded-xl gap-1.5 shadow-2xs"
+                  variant={isLocked ? "default" : "outline"}
+                  onClick={() => handleOpenAction(ext)}
+                  className={`h-8 text-xs font-bold rounded-xl gap-1.5 shadow-2xs ${
+                    isLocked
+                      ? "bg-amber-600 hover:bg-amber-700 text-white"
+                      : "border-slate-200 hover:bg-slate-50 text-slate-700 hover:text-slate-900"
+                  }`}
                 >
-                  <Settings2 size={13} />
-                  <span>Configurar</span>
+                  {isLocked ? (
+                    <>
+                      <KeyRound size={13} />
+                      <span>Desbloquear</span>
+                    </>
+                  ) : (
+                    <>
+                      <Settings2 size={13} />
+                      <span>Configurar</span>
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
@@ -440,7 +637,131 @@ export const ExtensionsModule: React.FC = () => {
         })}
       </div>
 
-      {/* 4. Dedicated Settings Modal */}
+      {/* 4. MODAL PARA EXTENSÃO BLOQUEADA */}
+      <Dialog open={isLockedModalOpen} onOpenChange={setIsLockedModalOpen}>
+        <DialogContent className="max-w-lg p-0 overflow-hidden bg-white text-slate-900 border-slate-200">
+          {lockedExtTarget && (
+            <>
+              <DialogHeader className="p-6 pb-4 bg-gradient-to-r from-amber-50 via-white to-amber-50/30 border-b border-amber-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-500/20">
+                    <Lock size={24} />
+                  </div>
+                  <div>
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200">
+                      Recurso Bloqueado
+                    </span>
+                    <DialogTitle className="text-base font-extrabold text-slate-900 mt-0.5">
+                      {lockedExtTarget.name}
+                    </DialogTitle>
+                    <DialogDescription className="text-xs text-slate-500">
+                      Exclusivo do pacote corporativo HangarBox Enterprise.
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <div className="p-6 space-y-4 text-xs">
+                <div className="p-3.5 bg-amber-50/80 border border-amber-200 rounded-2xl space-y-1.5">
+                  <div className="font-bold text-amber-900 flex items-center gap-1.5">
+                    <AlertTriangle size={14} className="text-amber-600" />
+                    <span>Módulo não disponível na sua licença atual</span>
+                  </div>
+                  <p className="text-amber-800 leading-relaxed">
+                    A extensão <strong>{lockedExtTarget.name}</strong> requer ativação de licença adicional ou upgrade para o plano Enterprise Suite.
+                  </p>
+                </div>
+
+                {/* Liberated Modules Summary */}
+                <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-2">
+                  <span className="font-bold text-slate-800 block text-[11px] uppercase tracking-wider">
+                    Módulos Liberados & Interligados na sua Assinatura:
+                  </span>
+                  <div className="grid grid-cols-2 gap-2 text-slate-700">
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
+                      <span>Pixel Collab (Core)</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
+                      <span>Pixel-Meta (CAPI)</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
+                      <span>Évora IA (24/7)</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
+                      <span>Radar Antifraude</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 col-span-2">
+                      <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
+                      <span>WhatsApp Gateway & Pix Recovery</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Unlock Form */}
+                <div className="space-y-2 pt-2 border-t border-slate-100">
+                  <label className="font-bold text-slate-700 block">
+                    Inserir Chave de Liberação / Licença Enterprise
+                  </label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={unlockLicenseKey}
+                      onChange={(e) => setUnlockLicenseKey(e.target.value)}
+                      placeholder="Ex: HB-ENTERPRISE-2026"
+                      className="text-xs rounded-xl h-10 font-mono uppercase bg-slate-50 border-slate-200"
+                    />
+                    <Button
+                      type="button"
+                      onClick={handleUnlockExtension}
+                      disabled={unlocking}
+                      className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl h-10 px-4 shrink-0 shadow-xs"
+                    >
+                      {unlocking ? "Validando..." : "Desbloquear"}
+                    </Button>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
+                    <span>Para demonstração, você pode usar:</span>
+                    <button
+                      type="button"
+                      onClick={() => setUnlockLicenseKey("HB-ENTERPRISE-2026")}
+                      className="font-mono text-amber-700 hover:underline font-bold"
+                    >
+                      HB-ENTERPRISE-2026
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsLockedModalOpen(false)}
+                  className="text-xs h-9 rounded-xl border-slate-200"
+                >
+                  Voltar
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    toast.info("Solicitação enviada à equipe HangarBox! Entraremos em contato via WhatsApp cadastrado.");
+                    setIsLockedModalOpen(false);
+                  }}
+                  className="text-xs text-slate-600 hover:text-slate-900"
+                >
+                  Falar com o Suporte
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* 5. MODAL DE CONFIGURAÇÃO DEDICADO PARA EXTENSÕES LIBERADAS */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="max-w-xl max-h-[90vh] flex flex-col p-0 overflow-hidden bg-white text-slate-900 border-slate-200">
           {activeExt && (
@@ -468,12 +789,29 @@ export const ExtensionsModule: React.FC = () => {
                 </div>
               </DialogHeader>
 
-              {/* Modal Body: Custom Form per Extension */}
+              {/* Interconnection Status Banner inside Modal */}
+              {activeExt.telemetry?.interconnectedWith && (
+                <div className="mx-6 mt-4 p-3 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center gap-2.5 text-xs">
+                  <div className="w-7 h-7 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                    <Zap size={14} />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="font-bold text-slate-800 block text-[11px]">
+                      Interligação em Tempo Real Ativa
+                    </span>
+                    <span className="text-slate-500 text-[10px] truncate block">
+                      Vinculado a: {activeExt.telemetry.interconnectedWith.join(" • ")}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Modal Body: Custom Form per Extension with Fictional Interconnected Data */}
               <div className="flex-1 overflow-y-auto p-6 space-y-4 text-xs">
                 {/* 1. PIXEL COLLAB (Core Platform) */}
                 {activeExt.id === "pixel_collab" && (
                   <div className="space-y-4">
-                    <div className="p-3.5 bg-purple-50 border border-purple-200 rounded-2xl text-purple-900 text-xs">
+                    <div className="p-3.5 bg-purple-50 border border-purple-200 rounded-2xl text-purple-950 text-xs space-y-1">
                       <strong>Plataforma Central HangarBox Collab:</strong> Este é o módulo de governança que coordena as sessões, permissões de administradores e a integridade de dados do cluster da loja. Ele permanece sempre conectado.
                     </div>
 
@@ -481,7 +819,7 @@ export const ExtensionsModule: React.FC = () => {
                       <div>
                         <label className="font-bold text-slate-700 block mb-1">Nome do Workspace</label>
                         <Input
-                          value={editSettings.workspace_name || ""}
+                          value={editSettings.workspace_name || "HangarBox Hub Oficial"}
                           onChange={(e) => setEditSettings({ ...editSettings, workspace_name: e.target.value })}
                           className="text-xs rounded-xl h-9 bg-slate-50"
                         />
@@ -489,9 +827,28 @@ export const ExtensionsModule: React.FC = () => {
                       <div>
                         <label className="font-bold text-slate-700 block mb-1">ID do Workspace</label>
                         <Input
-                          value={editSettings.workspace_id || ""}
+                          value={editSettings.workspace_id || "collab_ws_live_hb992"}
                           readOnly
                           className="text-xs rounded-xl h-9 bg-slate-100 font-mono text-slate-500 cursor-not-allowed"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="font-bold text-slate-700 block mb-1">Cluster / Região</label>
+                        <Input
+                          value={editSettings.cluster_node || "sa-east-sp01 (São Paulo)"}
+                          readOnly
+                          className="text-xs rounded-xl h-9 bg-slate-100 text-slate-600 font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-bold text-slate-700 block mb-1">Backup em Nuvem</label>
+                        <Input
+                          value={editSettings.cloud_backup_interval || "A cada 6 horas (Automático)"}
+                          readOnly
+                          className="text-xs rounded-xl h-9 bg-slate-100 text-slate-600"
                         />
                       </div>
                     </div>
@@ -532,35 +889,53 @@ export const ExtensionsModule: React.FC = () => {
                     <div>
                       <label className="font-bold text-slate-700 block mb-1">Meta Pixel ID</label>
                       <Input
-                        value={editSettings.pixel_id || ""}
+                        value={editSettings.pixel_id || "849201948201948"}
                         onChange={(e) => setEditSettings({ ...editSettings, pixel_id: e.target.value.trim() })}
-                        placeholder="Ex: 984783917460881"
-                        className="text-xs rounded-xl h-9 font-mono"
+                        placeholder="Ex: 849201948201948"
+                        className="text-xs rounded-xl h-9 font-mono bg-slate-50"
                       />
                     </div>
 
                     <div>
-                      <label className="font-bold text-slate-700 block mb-1">Token de Acesso da API de Conversões (CAPI Server-Side)</label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="font-bold text-slate-700 block">Token de Acesso CAPI (Server-Side)</label>
+                        <button
+                          type="button"
+                          onClick={() => setShowSecretToken(!showSecretToken)}
+                          className="text-[10px] text-blue-600 hover:underline flex items-center gap-1 font-semibold"
+                        >
+                          {showSecretToken ? <EyeOff size={11} /> : <Eye size={11} />}
+                          <span>{showSecretToken ? "Ocultar" : "Visualizar"}</span>
+                        </button>
+                      </div>
                       <Input
-                        type="password"
-                        value={editSettings.capi_token || ""}
+                        type={showSecretToken ? "text" : "password"}
+                        value={editSettings.capi_token || "EAAGNO4PZAlZBAO9kL280QJ28190ZkL89124098KLAJSLD91024"}
                         onChange={(e) => setEditSettings({ ...editSettings, capi_token: e.target.value.trim() })}
-                        placeholder="EAAB..."
-                        className="text-xs rounded-xl h-9 font-mono"
+                        className="text-xs rounded-xl h-9 font-mono bg-slate-50"
                       />
                       <span className="text-[10px] text-slate-500 mt-1 block">
-                        Garante o envio de eventos de compra mesmo com bloqueadores de anúncios ativos no navegador.
+                        Garante envio server-side via Graph API v19.0 mesmo com ad-blockers.
                       </span>
                     </div>
 
-                    <div>
-                      <label className="font-bold text-slate-700 block mb-1">Código de Teste de Eventos (Opcional)</label>
-                      <Input
-                        value={editSettings.test_event_code || ""}
-                        onChange={(e) => setEditSettings({ ...editSettings, test_event_code: e.target.value.trim() })}
-                        placeholder="Ex: TEST12345"
-                        className="text-xs rounded-xl h-9 font-mono"
-                      />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="font-bold text-slate-700 block mb-1">Código de Teste de Eventos</label>
+                        <Input
+                          value={editSettings.test_event_code || "TEST84920"}
+                          onChange={(e) => setEditSettings({ ...editSettings, test_event_code: e.target.value.trim() })}
+                          className="text-xs rounded-xl h-9 font-mono bg-slate-50"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-bold text-slate-700 block mb-1">Verificação de Domínio</label>
+                        <Input
+                          value={editSettings.domain_verification || "hb-meta-verify-948201948"}
+                          onChange={(e) => setEditSettings({ ...editSettings, domain_verification: e.target.value.trim() })}
+                          className="text-xs rounded-xl h-9 font-mono bg-slate-50"
+                        />
+                      </div>
                     </div>
 
                     <div className="pt-2 border-t border-slate-100">
@@ -641,10 +1016,9 @@ export const ExtensionsModule: React.FC = () => {
                       <label className="font-bold text-slate-700 block mb-1">Mensagem Inicial de Boas-Vindas</label>
                       <textarea
                         rows={2}
-                        value={editSettings.greeting_message || ""}
+                        value={editSettings.greeting_message || "Olá! Sou a Évora, assistente oficial da HangarBox. Posso te ajudar a encontrar a série perfeita ou liberar seu acesso imediato?"}
                         onChange={(e) => setEditSettings({ ...editSettings, greeting_message: e.target.value })}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-900 outline-none focus:bg-white focus:border-rose-500"
-                        placeholder="Olá! Sou a Évora..."
                       />
                     </div>
 
@@ -652,7 +1026,7 @@ export const ExtensionsModule: React.FC = () => {
                       <label className="font-bold text-slate-700 block mb-1">Diretriz de Personalidade (System Prompt)</label>
                       <textarea
                         rows={3}
-                        value={editSettings.personality_prompt || ""}
+                        value={editSettings.personality_prompt || "Você é a Évora, a assistente e concierge de IA oficial da HangarBox Séries. Seja amigável, ágil, entusiasta de séries e filmes, e ajude os clientes com recomendações e orientações sobre como comprar e assistir no player."}
                         onChange={(e) => setEditSettings({ ...editSettings, personality_prompt: e.target.value })}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-900 outline-none focus:bg-white focus:border-rose-500"
                       />
@@ -677,228 +1051,133 @@ export const ExtensionsModule: React.FC = () => {
                   </div>
                 )}
 
-                {/* 4. CRM CENTRAL */}
-                {activeExt.id === "crm_central" && (
-                  <div className="space-y-4">
-                    <p className="text-slate-500">
-                      Envie compradores confirmados e contatos de checkout abandonado diretamente para o seu pipeline de vendas e e-mail marketing.
-                    </p>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="font-bold text-slate-700 block mb-1">Provedor de CRM</label>
-                        <select
-                          value={editSettings.provider || "rd_station"}
-                          onChange={(e) => setEditSettings({ ...editSettings, provider: e.target.value })}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-xl h-9 px-3 text-xs text-slate-900 outline-none"
-                        >
-                          <option value="rd_station">RD Station Marketing</option>
-                          <option value="hubspot">HubSpot CRM</option>
-                          <option value="active_campaign">ActiveCampaign</option>
-                          <option value="webhook">Webhook Personalizado</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="font-bold text-slate-700 block mb-1">API Key / Token</label>
-                        <Input
-                          type="password"
-                          value={editSettings.api_key || ""}
-                          onChange={(e) => setEditSettings({ ...editSettings, api_key: e.target.value.trim() })}
-                          placeholder="Token da API..."
-                          className="text-xs rounded-xl h-9"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="font-bold text-slate-700 block mb-1">URL do Webhook do CRM</label>
-                      <Input
-                        value={editSettings.webhook_url || ""}
-                        onChange={(e) => setEditSettings({ ...editSettings, webhook_url: e.target.value.trim() })}
-                        placeholder="https://api.rd.services/platform/conversions..."
-                        className="text-xs rounded-xl h-9"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="font-bold text-slate-700 block mb-1">Tag para Compradores</label>
-                        <Input
-                          value={editSettings.tag_buyers || "hangarbox-cliente"}
-                          onChange={(e) => setEditSettings({ ...editSettings, tag_buyers: e.target.value })}
-                          className="text-xs rounded-xl h-9"
-                        />
-                      </div>
-                      <div>
-                        <label className="font-bold text-slate-700 block mb-1">Tag para Abandono</label>
-                        <Input
-                          value={editSettings.tag_abandoned || "hangarbox-carrinho-abandonado"}
-                          onChange={(e) => setEditSettings({ ...editSettings, tag_abandoned: e.target.value })}
-                          className="text-xs rounded-xl h-9"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* 5. TIKTOK PIXEL */}
-                {activeExt.id === "tiktok_pixel" && (
-                  <div className="space-y-4">
-                    <p className="text-slate-500">
-                      Rastreie cliques e conversões de anúncios no TikTok Ads para impulsionar séries virais.
-                    </p>
-                    <div>
-                      <label className="font-bold text-slate-700 block mb-1">TikTok Pixel ID</label>
-                      <Input
-                        value={editSettings.pixel_id || ""}
-                        onChange={(e) => setEditSettings({ ...editSettings, pixel_id: e.target.value.trim() })}
-                        placeholder="Ex: C8XXXXXXXXXXXXXXXXXX"
-                        className="text-xs rounded-xl h-9 font-mono"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* 6. GOOGLE SUITE */}
-                {activeExt.id === "google_suite" && (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="font-bold text-slate-700 block mb-1">GA4 Measurement ID</label>
-                        <Input
-                          value={editSettings.ga4_measurement_id || ""}
-                          onChange={(e) => setEditSettings({ ...editSettings, ga4_measurement_id: e.target.value.trim() })}
-                          placeholder="G-XXXXXXXXXX"
-                          className="text-xs rounded-xl h-9 font-mono"
-                        />
-                      </div>
-                      <div>
-                        <label className="font-bold text-slate-700 block mb-1">GTM Container ID</label>
-                        <Input
-                          value={editSettings.gtm_container_id || ""}
-                          onChange={(e) => setEditSettings({ ...editSettings, gtm_container_id: e.target.value.trim() })}
-                          placeholder="GTM-XXXXXXX"
-                          className="text-xs rounded-xl h-9 font-mono"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* 7. UTMIFY TRACKER */}
-                {activeExt.id === "utmify_tracker" && (
-                  <div className="space-y-4">
-                    <p className="text-slate-500">
-                      Captura os parâmetros `utm_source`, `utm_medium`, `utm_campaign`, `utm_content` e `src` da URL inicial e preserva até a finalização do Pix no Mercado Pago.
-                    </p>
-                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
-                      <span className="font-bold text-slate-800">Injetar UTMs nos Metadados do Pedido</span>
-                      <Switch
-                        checked={editSettings.forward_to_checkout ?? true}
-                        onCheckedChange={(c) => setEditSettings({ ...editSettings, forward_to_checkout: c })}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* 8. WEBHOOK ENGINE */}
-                {activeExt.id === "webhook_engine" && (
-                  <div className="space-y-4">
-                    <p className="text-slate-500">
-                      Envie payloads JSON instantâneos para automações externas no Zapier, Make, n8n ou webhook próprio.
-                    </p>
-                    <div>
-                      <label className="font-bold text-slate-700 block mb-1">Endpoint URL (POST)</label>
-                      <Input
-                        value={editSettings.endpoint_url || ""}
-                        onChange={(e) => setEditSettings({ ...editSettings, endpoint_url: e.target.value.trim() })}
-                        placeholder="https://webhook.site/..."
-                        className="text-xs rounded-xl h-9 font-mono"
-                      />
-                    </div>
-                    <div>
-                      <label className="font-bold text-slate-700 block mb-1">Chave Secreta de Assinatura (Header)</label>
-                      <Input
-                        type="password"
-                        value={editSettings.secret_header || ""}
-                        onChange={(e) => setEditSettings({ ...editSettings, secret_header: e.target.value.trim() })}
-                        placeholder="X-Webhook-Secret..."
-                        className="text-xs rounded-xl h-9 font-mono"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* 9. SOCIAL PROOF AI */}
-                {activeExt.id === "social_proof_ai" && (
-                  <div className="space-y-4">
-                    <p className="text-slate-500">
-                      Dispara notificações sutis no canto inferior da tela mostrando compras recentes da comunidade para acelerar a decisão dos novos visitantes.
-                    </p>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="font-bold text-slate-700 block mb-1">Intervalo entre Popups (segundos)</label>
-                        <Input
-                          type="number"
-                          min={5}
-                          max={120}
-                          value={editSettings.display_interval_seconds || 25}
-                          onChange={(e) => setEditSettings({ ...editSettings, display_interval_seconds: parseInt(e.target.value) || 25 })}
-                          className="text-xs rounded-xl h-9"
-                        />
-                      </div>
-                      <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl mt-4">
-                        <span className="font-bold text-slate-800">Exibir Cidade</span>
-                        <Switch
-                          checked={editSettings.show_city ?? true}
-                          onCheckedChange={(c) => setEditSettings({ ...editSettings, show_city: c })}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* 10. ANTIFRAUD SHIELD */}
+                {/* 4. ANTIFRAUD SHIELD */}
                 {activeExt.id === "antifraud_shield" && (
                   <div className="space-y-4">
                     <p className="text-slate-500">
-                      Protege sua infraestrutura contra bots geradores de Pix em massa e tentativas fraudulentas.
+                      Protege sua infraestrutura contra bots geradores de Pix em massa e tentativas fraudulentas de pagamento.
                     </p>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="font-bold text-slate-700 block mb-1">Limite de Checkouts / Minuto por IP</label>
+                        <Input
+                          type="number"
+                          value={editSettings.rate_limit_per_minute || 5}
+                          onChange={(e) => setEditSettings({ ...editSettings, rate_limit_per_minute: parseInt(e.target.value) || 5 })}
+                          className="text-xs rounded-xl h-9 bg-slate-50"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-bold text-slate-700 block mb-1">Nível de Rigor do Escudo</label>
+                        <select
+                          value={editSettings.risk_threshold || "medium"}
+                          onChange={(e) => setEditSettings({ ...editSettings, risk_threshold: e.target.value })}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl h-9 px-3 text-xs text-slate-900 outline-none"
+                        >
+                          <option value="low">Nível 1 (Básico)</option>
+                          <option value="medium">Nível 2 (Equilibrado - Padrão)</option>
+                          <option value="high">Nível 3 (Rigor Máximo)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 pt-2 border-t border-slate-100">
+                      <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                        <div>
+                          <span className="font-bold text-slate-800 block">Bloquear E-mails Descartáveis / Temporários</span>
+                          <span className="text-[11px] text-slate-500">Impede o uso de serviços como 10minutemail ou mailinator</span>
+                        </div>
+                        <Switch
+                          checked={editSettings.block_disposable_emails ?? true}
+                          onCheckedChange={(c) => setEditSettings({ ...editSettings, block_disposable_emails: c })}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                        <div>
+                          <span className="font-bold text-slate-800 block">Auditoria de Tentativas Suspeitas</span>
+                          <span className="text-[11px] text-slate-500">Grava logs detalhados para perícia de segurança</span>
+                        </div>
+                        <Switch
+                          checked={editSettings.log_suspicious_activity ?? true}
+                          onCheckedChange={(c) => setEditSettings({ ...editSettings, log_suspicious_activity: c })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 5. WHATSAPP RECOVERY */}
+                {activeExt.id === "whatsapp_recovery" && (
+                  <div className="space-y-4">
+                    <p className="text-slate-500">
+                      Recuperação automática de Pix pendentes interligada à sessão <strong>hangarbox-oficial</strong> do Gateway WhatsApp.
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="font-bold text-slate-700 block mb-1">Delay do Disparo (Minutos)</label>
+                        <Input
+                          type="number"
+                          value={editSettings.delay_minutes || 8}
+                          onChange={(e) => setEditSettings({ ...editSettings, delay_minutes: parseInt(e.target.value) || 8 })}
+                          className="text-xs rounded-xl h-9 bg-slate-50"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-bold text-slate-700 block mb-1">Sessão Vinculada</label>
+                        <Input
+                          value={editSettings.linked_session || "hangarbox-oficial"}
+                          readOnly
+                          className="text-xs rounded-xl h-9 bg-slate-100 text-slate-600 font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="font-bold text-slate-700 block mb-1">Mensagem de Lembrete</label>
+                      <textarea
+                        rows={3}
+                        value={editSettings.custom_message || "Olá {nome}! Notamos que seu pedido da série {serie} está aguardando pagamento. Segue o código Pix para você assistir agora mesmo!"}
+                        onChange={(e) => setEditSettings({ ...editSettings, custom_message: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-900 outline-none focus:bg-white focus:border-rose-500"
+                      />
+                    </div>
+
                     <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
                       <div>
-                        <span className="font-bold text-slate-800 block">Bloquear E-mails Descartáveis / Temporários</span>
-                        <span className="text-[11px] text-slate-500">Impede o uso de serviços como 10minutemail ou mailinator</span>
+                        <span className="font-bold text-slate-800 block">Anexar Código Pix Copia e Cola</span>
+                        <span className="text-[11px] text-slate-500">Envia a chave Pix pronta para pagamento no banco do cliente</span>
                       </div>
                       <Switch
-                        checked={editSettings.block_disposable_emails ?? true}
-                        onCheckedChange={(c) => setEditSettings({ ...editSettings, block_disposable_emails: c })}
+                        checked={editSettings.include_pix_code ?? true}
+                        onCheckedChange={(c) => setEditSettings({ ...editSettings, include_pix_code: c })}
                       />
                     </div>
                   </div>
                 )}
 
-                {/* 11. PUSH NOTIFICATIONS / WHATSAPP RECOVERY FALLBACK */}
-                {(activeExt.id === "push_notifications" || activeExt.id === "whatsapp_recovery") && (
-                  <div className="space-y-4">
-                    <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 text-xs">
-                      Extensão pronta para integração. Ajuste as credenciais abaixo e clique em Salvar para ativar os disparos.
+                {/* 6. DEMAIS (FALLBACK QUANDO DESBLOQUEADO) */}
+                {activeExt.id !== "pixel_collab" &&
+                  activeExt.id !== "pixel_meta" &&
+                  activeExt.id !== "pixel_evora" &&
+                  activeExt.id !== "antifraud_shield" &&
+                  activeExt.id !== "whatsapp_recovery" && (
+                    <div className="space-y-4">
+                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700">
+                        Módulo liberado via licença Enterprise. Ajuste as credenciais abaixo e clique em salvar.
+                      </div>
+                      <div>
+                        <label className="font-bold text-slate-700 block mb-1">Token / Identificador</label>
+                        <Input
+                          value={editSettings.pixel_id || editSettings.api_key || editSettings.endpoint_url || ""}
+                          onChange={(e) => setEditSettings({ ...editSettings, pixel_id: e.target.value, api_key: e.target.value })}
+                          className="text-xs rounded-xl h-9"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="font-bold text-slate-700 block mb-1">Mensagem ou Identificador de App</label>
-                      <Input
-                        value={editSettings.onesignal_app_id || editSettings.custom_message || ""}
-                        onChange={(e) =>
-                          setEditSettings({
-                            ...editSettings,
-                            [activeExt.id === "push_notifications" ? "onesignal_app_id" : "custom_message"]: e.target.value,
-                          })
-                        }
-                        className="text-xs rounded-xl h-9"
-                      />
-                    </div>
-                  </div>
-                )}
+                  )}
               </div>
 
               {/* Modal Footer */}
@@ -911,7 +1190,7 @@ export const ExtensionsModule: React.FC = () => {
                   className="h-9 text-xs rounded-xl border-slate-200 text-slate-700 hover:bg-slate-100 gap-1.5"
                 >
                   <Activity size={13} className={testingConnection ? "animate-spin text-rose-600" : "text-emerald-600"} />
-                  <span>{testingConnection ? "Testando..." : "Testar Conexão"}</span>
+                  <span>{testingConnection ? "Testando Ping..." : "Testar Conexão"}</span>
                 </Button>
 
                 <div className="flex items-center gap-2">

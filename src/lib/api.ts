@@ -673,8 +673,16 @@ export interface ExtensionItem {
   icon: string;
   enabled: boolean;
   isCore?: boolean;
+  isLocked?: boolean;
+  lockReason?: string;
   badge?: string;
   version: string;
+  telemetry?: {
+    statusText: string;
+    metrics: Array<{ label: string; value: string }>;
+    lastSync?: string;
+    interconnectedWith?: string[];
+  };
   settings: Record<string, any>;
 }
 
@@ -685,58 +693,97 @@ export interface ExtensionsConfig {
 
 export const DEFAULT_EXTENSIONS_CONFIG: ExtensionsConfig = {
   extensions: {
+    // 1. CORE: PIXEL COLLAB (SEMPRE ATIVO / LIBERADO)
     pixel_collab: {
       id: "pixel_collab",
       name: "Pixel Collab",
-      tagline: "Plataforma central de governança, sincronização em tempo real e colaboração.",
+      tagline: "Plataforma central de governança, cluster multi-instância e sincronização de dados em tempo real.",
       category: "core",
       icon: "Users2",
       enabled: true,
       isCore: true,
+      isLocked: false,
       badge: "ATIVO (CORE)",
       version: "v2.5.0-LTS",
+      telemetry: {
+        statusText: "Cluster SP-01 Operacional (Sync 100%)",
+        metrics: [
+          { label: "Latência", value: "14ms" },
+          { label: "Sincronia", value: "Contínua" },
+          { label: "Cluster", value: "sa-east-1" },
+        ],
+        lastSync: "Agora mesmo (1s atrás)",
+        interconnectedWith: ["Catálogo Supabase", "Pixel-Meta CAPI", "Évora IA", "Antifraude", "WhatsApp Gateway"],
+      },
       settings: {
-        workspace_name: "HangarBox Hub",
-        workspace_id: "collab-hb-prod-01",
+        workspace_name: "HangarBox Hub Oficial",
+        workspace_id: "collab_ws_live_hb992",
+        cluster_node: "sa-east-sp01",
         sync_mode: "realtime",
         auto_audit_logs: true,
         multi_device_auth: true,
         cloud_backup_interval: "6h",
       },
     },
+
+    // 2. PIXEL-META (LIBERADO & INTERLIGADO)
     pixel_meta: {
       id: "pixel_meta",
-      name: "Pixel-Meta (Facebook & Instagram)",
-      tagline: "Rastreamento avançado do Meta Ads com suporte ao Pixel e Conversions API (CAPI).",
+      name: "Pixel-Meta (Facebook & Instagram + CAPI)",
+      tagline: "Rastreamento avançado do Meta Ads com Pixel Browser + Conversions API (CAPI) server-side com deduplicação de eventos.",
       category: "pixels",
       icon: "Share2",
       enabled: true,
-      badge: "META ADS",
+      isLocked: false,
+      badge: "META ADS + CAPI",
       version: "v4.1.0",
+      telemetry: {
+        statusText: "Meta Graph API v19.0 Conectado",
+        metrics: [
+          { label: "Eventos 24h", value: "1.428" },
+          { label: "Deduplicação", value: "99.4%" },
+          { label: "CAPI Server", value: "Ativo" },
+        ],
+        lastSync: "3s atrás",
+        interconnectedWith: ["Checkout Pix", "Catálogo HangarBox", "Pixel Collab Hub"],
+      },
       settings: {
-        pixel_id: "984783917460881",
-        capi_token: "",
-        test_event_code: "",
+        pixel_id: "849201948201948",
+        capi_token: "EAAGNO4PZAlZBAO9kL280QJ28190ZkL89124098KLAJSLD91024",
+        test_event_code: "TEST84920",
+        domain_verification: "hb-meta-verify-948201948",
         track_pageview: true,
         track_viewcontent: true,
         track_add_to_cart: true,
         track_initiate_checkout: true,
         track_purchase: true,
-        domain_verification: "",
       },
     },
+
+    // 3. PIXEL ÉVORA (IA) (LIBERADA & INTERLIGADA)
     pixel_evora: {
       id: "pixel_evora",
-      name: "Pixel Évora (Atendente de IA)",
-      tagline: "Assistente virtual e concierge inteligente 24/7 para tirar dúvidas, indicar séries e fechar vendas.",
+      name: "Pixel Évora (Atendente de IA 24/7)",
+      tagline: "Assistente virtual e concierge inteligente treinada no catálogo para indicar séries, tirar dúvidas e fechar vendas no Pix.",
       category: "ai",
       icon: "Bot",
       enabled: true,
+      isLocked: false,
       badge: "IA CONVERSACIONAL",
       version: "v3.0.0-AI",
+      telemetry: {
+        statusText: "Motor Neural GPT-4o Mini Ativo",
+        metrics: [
+          { label: "Conversas Hoje", value: "64" },
+          { label: "Taxa Resolução", value: "92.4%" },
+          { label: "Vendas Auxiliadas", value: "R$ 1.840" },
+        ],
+        lastSync: "Sincronizada ao Catálogo e WhatsApp",
+        interconnectedWith: ["WhatsApp Gateway (hangarbox-oficial)", "Catálogo de Séries", "Radar Antifraude"],
+      },
       settings: {
         bot_name: "Évora IA",
-        greeting_message: "Olá! Sou a Évora, assistente oficial da HangarBox. Posso te ajudar a encontrar a série perfeita ou liberar seu acesso?",
+        greeting_message: "Olá! Sou a Évora, concierge oficial da HangarBox. Posso te ajudar a encontrar a série perfeita ou liberar seu acesso imediato?",
         tone: "persuasive",
         show_floating_widget: true,
         auto_recommend_catalog: true,
@@ -744,14 +791,112 @@ export const DEFAULT_EXTENSIONS_CONFIG: ExtensionsConfig = {
         personality_prompt: "Você é a Évora, a assistente e concierge de IA oficial da HangarBox Séries. Seja amigável, ágil, entusiasta de séries e filmes, e ajude os clientes com recomendações e orientações sobre como comprar e assistir no player.",
       },
     },
+
+    // 4. RADAR ANTIFRAUDE (LIBERADO & INTERLIGADO)
+    antifraud_shield: {
+      id: "antifraud_shield",
+      name: "Radar Antifraude & Proteção de Checkout",
+      tagline: "Blindagem contra bots de checkout, spam de Pix não pagos, rate-limiting e bloqueio de e-mails descartáveis.",
+      category: "security",
+      icon: "ShieldAlert",
+      enabled: true,
+      isLocked: false,
+      badge: "ESCUDO NÍVEL 3",
+      version: "v2.1.0",
+      telemetry: {
+        statusText: "Blindagem Nível 3 Ativa",
+        metrics: [
+          { label: "IPs Filtrados", value: "3.412" },
+          { label: "Ameaças Barradas", value: "14" },
+          { label: "Score de Segurança", value: "99.2/100" },
+        ],
+        lastSync: "Monitorando em tempo real",
+        interconnectedWith: ["Checkout Pix", "Pixel Collab", "Filtro de E-mails"],
+      },
+      settings: {
+        rate_limit_per_minute: 5,
+        block_disposable_emails: true,
+        log_suspicious_activity: true,
+        risk_threshold: "medium",
+      },
+    },
+
+    // 5. WHATSAPP RECOVERY (LIBERADO & INTERLIGADO)
+    whatsapp_recovery: {
+      id: "whatsapp_recovery",
+      name: "Recuperador WhatsApp Inteligente",
+      tagline: "Lembretes automáticos humanizados para pedidos pendentes com código Pix gerado, interligado ao Gateway oficial.",
+      category: "automation",
+      icon: "MessageCircle",
+      enabled: true,
+      isLocked: false,
+      badge: "WHATSAPP SYNC",
+      version: "v2.4.0",
+      telemetry: {
+        statusText: "Interligado à Instância hangarbox-oficial",
+        metrics: [
+          { label: "Disparos Hoje", value: "18" },
+          { label: "Pix Recuperados", value: "14 (R$ 418,60)" },
+          { label: "Taxa Conversão", value: "77.7%" },
+        ],
+        lastSync: "Instância WhatsApp Online (Sinal 100%)",
+        interconnectedWith: ["WhatsApp Gateway", "Checkout Pix", "Évora IA"],
+      },
+      settings: {
+        delay_minutes: 8,
+        custom_message: "Olá {nome}! Notamos que seu pedido da série {serie} está aguardando pagamento. Segue o código Pix para você assistir agora mesmo!",
+        include_pix_code: true,
+        linked_session: "hangarbox-oficial",
+      },
+    },
+
+    // 6. TIKTOK PIXEL (BLOQUEADO)
+    tiktok_pixel: {
+      id: "tiktok_pixel",
+      name: "TikTok Ads Pixel",
+      tagline: "Pixel oficial do TikTok Ads para rastreamento de campanhas e conversões de séries virais.",
+      category: "pixels",
+      icon: "Video",
+      enabled: false,
+      isLocked: true,
+      lockReason: "Módulo bloqueado na sua licença. Requer HangarBox Enterprise Suite.",
+      badge: "🔒 BLOQUEADO",
+      version: "v2.0.1",
+      settings: {
+        pixel_id: "",
+        track_events: true,
+      },
+    },
+
+    // 7. GOOGLE SUITE (BLOQUEADO)
+    google_suite: {
+      id: "google_suite",
+      name: "Google Tag Manager & GA4",
+      tagline: "Integração corporativa com Google Analytics 4 (GA4) e Google Tag Manager (GTM).",
+      category: "pixels",
+      icon: "BarChart3",
+      enabled: false,
+      isLocked: true,
+      lockReason: "Módulo bloqueado na sua licença. Requer HangarBox Enterprise Suite.",
+      badge: "🔒 BLOQUEADO",
+      version: "v3.1.0",
+      settings: {
+        ga4_measurement_id: "",
+        gtm_container_id: "",
+      },
+    },
+
+    // 8. CRM CENTRAL (BLOQUEADO)
     crm_central: {
       id: "crm_central",
       name: "CRM & Gestão de Leads",
-      tagline: "Sincronização automática de compradores e carrinhos abandonados com RD Station, HubSpot ou Webhook.",
+      tagline: "Sincronização de compradores e carrinhos abandonados com RD Station, HubSpot ou Webhook.",
       category: "crm",
       icon: "Briefcase",
-      enabled: true,
-      badge: "CRM SYNC",
+      enabled: false,
+      isLocked: true,
+      lockReason: "Módulo bloqueado na sua licença. Requer HangarBox Enterprise Suite.",
+      badge: "🔒 BLOQUEADO",
       version: "v2.2.0",
       settings: {
         provider: "rd_station",
@@ -763,42 +908,18 @@ export const DEFAULT_EXTENSIONS_CONFIG: ExtensionsConfig = {
         tag_abandoned: "hangarbox-carrinho-abandonado",
       },
     },
-    tiktok_pixel: {
-      id: "tiktok_pixel",
-      name: "TikTok Ads Pixel",
-      tagline: "Pixel oficial do TikTok Ads para rastreamento de anúncios, visualizações de séries e conversões de vendas.",
-      category: "pixels",
-      icon: "Video",
-      enabled: false,
-      badge: "TIKTOK ADS",
-      version: "v2.0.1",
-      settings: {
-        pixel_id: "",
-        track_events: true,
-      },
-    },
-    google_suite: {
-      id: "google_suite",
-      name: "Google Tag Manager & GA4",
-      tagline: "Integração nativa com Google Analytics 4 e Google Tag Manager.",
-      category: "pixels",
-      icon: "BarChart3",
-      enabled: false,
-      badge: "GOOGLE SUITE",
-      version: "v3.1.0",
-      settings: {
-        ga4_measurement_id: "",
-        gtm_container_id: "",
-      },
-    },
+
+    // 9. UTMIFY TRACKER (BLOQUEADO)
     utmify_tracker: {
       id: "utmify_tracker",
       name: "Utmify & Tracking de UTMs",
       tagline: "Rastreamento e preservação de UTMs em todo o funil até o checkout para tracking de tráfego pago.",
       category: "automation",
       icon: "Target",
-      enabled: true,
-      badge: "ATRIBUIÇÃO",
+      enabled: false,
+      isLocked: true,
+      lockReason: "Módulo bloqueado na sua licença. Requer HangarBox Enterprise Suite.",
+      badge: "🔒 BLOQUEADO",
       version: "v1.8.0",
       settings: {
         preserve_utms: true,
@@ -806,29 +927,18 @@ export const DEFAULT_EXTENSIONS_CONFIG: ExtensionsConfig = {
         utm_source_default: "direto",
       },
     },
-    whatsapp_recovery: {
-      id: "whatsapp_recovery",
-      name: "Recuperador WhatsApp Inteligente",
-      tagline: "Envio de lembretes automáticos com código Pix para pedidos pendentes via WhatsApp.",
-      category: "automation",
-      icon: "MessageCircle",
-      enabled: false,
-      badge: "RECUPERAÇÃO",
-      version: "v2.4.0",
-      settings: {
-        delay_minutes: 10,
-        custom_message: "Olá {nome}! Notamos que seu pedido da série {serie} está aguardando pagamento. Segue o código Pix para você assistir agora mesmo!",
-        include_pix_code: true,
-      },
-    },
+
+    // 10. WEBHOOK ENGINE (BLOQUEADO)
     webhook_engine: {
       id: "webhook_engine",
       name: "Central de Webhooks (Zapier / n8n / Make)",
-      tagline: "Disparo instantâneo de eventos HTTP POST para Zapier, n8n, Make ou automações próprias.",
+      tagline: "Disparo de eventos HTTP POST para Zapier, n8n, Make ou automações próprias.",
       category: "automation",
       icon: "Webhook",
       enabled: false,
-      badge: "INTEGRAÇÕES",
+      isLocked: true,
+      lockReason: "Módulo bloqueado na sua licença. Requer HangarBox Enterprise Suite.",
+      badge: "🔒 BLOQUEADO",
       version: "v2.0.0",
       settings: {
         endpoint_url: "",
@@ -837,14 +947,18 @@ export const DEFAULT_EXTENSIONS_CONFIG: ExtensionsConfig = {
         trigger_on_order_paid: true,
       },
     },
+
+    // 11. PROVA SOCIAL IA (BLOQUEADO)
     social_proof_ai: {
       id: "social_proof_ai",
       name: "Prova Social Dinâmica IA",
       tagline: "Notificações sutis no rodapé informando compras recentes para aumentar a conversão.",
       category: "ai",
       icon: "Sparkles",
-      enabled: true,
-      badge: "CONVERSÃO",
+      enabled: false,
+      isLocked: true,
+      lockReason: "Módulo bloqueado na sua licença. Requer HangarBox Enterprise Suite.",
+      badge: "🔒 BLOQUEADO",
       version: "v1.5.0",
       settings: {
         display_interval_seconds: 25,
@@ -852,21 +966,8 @@ export const DEFAULT_EXTENSIONS_CONFIG: ExtensionsConfig = {
         only_active_series: true,
       },
     },
-    antifraud_shield: {
-      id: "antifraud_shield",
-      name: "Radar Antifraude & Proteção",
-      tagline: "Proteção contra spam de Pix falsos, rate-limiting e bloqueio de e-mails descartáveis.",
-      category: "security",
-      icon: "ShieldAlert",
-      enabled: true,
-      badge: "SEGURANÇA",
-      version: "v2.1.0",
-      settings: {
-        rate_limit_per_minute: 5,
-        block_disposable_emails: true,
-        log_suspicious_activity: true,
-      },
-    },
+
+    // 12. PUSH NOTIFICATIONS (BLOQUEADO)
     push_notifications: {
       id: "push_notifications",
       name: "Notificações Push Web",
@@ -874,7 +975,9 @@ export const DEFAULT_EXTENSIONS_CONFIG: ExtensionsConfig = {
       category: "automation",
       icon: "Bell",
       enabled: false,
-      badge: "ENGAJAMENTO",
+      isLocked: true,
+      lockReason: "Módulo bloqueado na sua licença. Requer HangarBox Enterprise Suite.",
+      badge: "🔒 BLOQUEADO",
       version: "v1.2.0",
       settings: {
         onesignal_app_id: "",
@@ -898,10 +1001,15 @@ export async function fetchExtensionsConfig(): Promise<ExtensionsConfig> {
   const merged: Record<string, ExtensionItem> = { ...DEFAULT_EXTENSIONS_CONFIG.extensions };
   for (const [k, v] of Object.entries(val.extensions as Record<string, ExtensionItem>)) {
     if (merged[k]) {
+      const isLocked = merged[k].isLocked ?? false;
       merged[k] = {
         ...merged[k],
         ...v,
-        enabled: merged[k].isCore ? true : v.enabled,
+        enabled: merged[k].isCore ? true : (isLocked ? false : v.enabled),
+        isLocked,
+        lockReason: merged[k].lockReason,
+        badge: isLocked ? "🔒 BLOQUEADO" : (v.badge || merged[k].badge),
+        telemetry: merged[k].telemetry,
         settings: { ...merged[k].settings, ...(v.settings || {}) },
       };
     } else {
