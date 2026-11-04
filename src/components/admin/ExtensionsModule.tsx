@@ -68,8 +68,8 @@ const ICON_MAP: Record<string, React.ElementType> = {
 
 const CATEGORIES = [
   { id: "all", label: "Todas as Extensões" },
-  { id: "liberated", label: "🟢 Liberadas & Ativas (5)" },
-  { id: "locked", label: "🔒 Bloqueadas (7)" },
+  { id: "liberated", label: "🟢 Liberadas (Core)" },
+  { id: "locked", label: "🔒 Bloqueadas (Enterprise)" },
   { id: "core", label: "Plataforma Core" },
   { id: "pixels", label: "Pixels & Tráfego" },
   { id: "ai", label: "IA & Atendimento" },
@@ -339,7 +339,7 @@ export const ExtensionsModule: React.FC = () => {
               </h2>
 
               <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
-                Ecossistema de alta conversão HangarBox. As extensões oficiais essenciais (<strong>Pixel Collab</strong>, <strong>Pixel-Meta CAPI</strong>, <strong>Évora IA</strong>, <strong>Radar Antifraude</strong> e <strong>WhatsApp Gateway</strong>) estão 100% liberadas e interligadas em tempo real.
+                Ecossistema oficial HangarBox. O <strong>Pixel Collab</strong> atua como a plataforma central de gerenciamento ativa. Os módulos avançados (<strong>Pixel-Meta</strong>, <strong>Évora IA</strong>, <strong>Radar Antifraude</strong>, <strong>WhatsApp Recovery</strong>, entre outros) estão com bloqueio corporativo Enterprise ativo.
               </p>
             </div>
 
@@ -380,26 +380,14 @@ export const ExtensionsModule: React.FC = () => {
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider flex items-center gap-1">
                 <Radio size={12} className="text-emerald-400 animate-pulse" />
-                Malha Interligada:
+                Cluster de Infraestrutura:
               </span>
               <span className="px-2 py-0.5 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[11px] font-bold">
-                Pixel Collab
+                Pixel Collab (Core LTS Ativo)
               </span>
-              <span className="text-zinc-600">⇄</span>
-              <span className="px-2 py-0.5 rounded-lg bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[11px] font-bold">
-                Meta CAPI
-              </span>
-              <span className="text-zinc-600">⇄</span>
-              <span className="px-2 py-0.5 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[11px] font-bold">
-                Évora IA
-              </span>
-              <span className="text-zinc-600">⇄</span>
-              <span className="px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-bold">
-                Radar Antifraude
-              </span>
-              <span className="text-zinc-600">⇄</span>
-              <span className="px-2 py-0.5 rounded-lg bg-teal-500/20 text-teal-300 border border-teal-500/30 text-[11px] font-bold">
-                WhatsApp Gateway
+              <span className="text-zinc-600">•</span>
+              <span className="text-[11px] text-zinc-400">
+                Módulos adicionais protegidos com Bloqueio Enterprise
               </span>
             </div>
 
@@ -675,29 +663,16 @@ export const ExtensionsModule: React.FC = () => {
                 {/* Liberated Modules Summary */}
                 <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-2">
                   <span className="font-bold text-slate-800 block text-[11px] uppercase tracking-wider">
-                    Módulos Liberados & Interligados na sua Assinatura:
+                    Módulo Base Ativo na sua Assinatura:
                   </span>
-                  <div className="grid grid-cols-2 gap-2 text-slate-700">
-                    <div className="flex items-center gap-1.5">
-                      <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
-                      <span>Pixel Collab (Core)</span>
+                  <div className="text-slate-700">
+                    <div className="flex items-center gap-1.5 font-bold text-purple-900">
+                      <CheckCircle2 size={14} className="text-purple-600 shrink-0" />
+                      <span>Pixel Collab (Core de Gerenciamento & Sincronização)</span>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
-                      <span>Pixel-Meta (CAPI)</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
-                      <span>Évora IA (24/7)</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
-                      <span>Radar Antifraude</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 col-span-2">
-                      <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
-                      <span>WhatsApp Gateway & Pix Recovery</span>
-                    </div>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      Pixel-Meta, Évora IA, Antifraude e WhatsApp Recovery e demais módulos requerem validação de licença Enterprise abaixo.
+                    </p>
                   </div>
                 </div>
 

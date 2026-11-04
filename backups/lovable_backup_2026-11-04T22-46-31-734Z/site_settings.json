@@ -1,0 +1,105 @@
+[
+  {
+    "id": "2b1f9fb2-552a-4176-9d82-51ef985a3113",
+    "key": "top_watched_config",
+    "value": {
+      "mode": "manual",
+      "title": "Top 10 As melhores",
+      "is_visible": true,
+      "series_ids": [
+        "eb7e83ea-2f70-437f-905c-2e74a6a772d3",
+        "e620ef03-3da0-47af-98b8-2595afb1c926",
+        "246c42a0-fa30-4e20-8cb0-e1536d56851d",
+        "63971c11-9bb3-41ee-b9ae-db1d6ac67aec",
+        "9634ab02-9d15-4ecc-b574-681b74f5b755",
+        "6bf13cdf-4b24-4a9a-a9e3-802a4f7ab64c",
+        "df398417-824b-4d4d-be63-beda4f7d74da",
+        "1708fc78-aad3-4c1e-9df6-b93eda801874",
+        "f4419178-2456-414b-9155-7977eb68d83c",
+        "f13f324a-160f-4ddb-82c3-84ec3079c20f"
+      ]
+    },
+    "updated_at": "2026-11-03T11:56:28.488319+00:00"
+  },
+  {
+    "id": "2eeb7ee7-e368-4ad7-9a5b-45569bf862e6",
+    "key": "maintenance_mode",
+    "value": {
+      "enabled": false
+    },
+    "updated_at": "2026-10-21T23:04:59.490742+00:00"
+  },
+  {
+    "id": "f59fe518-44d2-4549-8a4d-82e9227e6867",
+    "key": "whatsapp_gateway",
+    "value": {
+      "apiKey": "BRUNOADM0067291",
+      "apiUrl": "BRUNOADM@INDEX.COM",
+      "sessionName": "default",
+      "autoNotifyPurchase": true
+    },
+    "updated_at": "2026-10-23T01:57:38.746766+00:00"
+  },
+  {
+    "id": "ecb0632f-ab2d-4b79-be8d-32455200b00d",
+    "key": "genre_colors",
+    "value": {
+      "Hot": "316 100% 58%",
+      "Crime": "280 70% 50%",
+      "Drama": "200 100% 55%",
+      "Animes": "304 100% 43%",
+      "Ação": "0 75% 50%",
+      "Terror": "0 90% 35%",
+      "Em Alta": "200 100% 55%",
+      "Romance": "330 80% 55%",
+      "Aventura": "25 90% 55%",
+      "Fantasia": "270 80% 60%",
+      "Suspense": "35 90% 50%",
+      "Thriller": "45 100% 50%",
+      "Destaques": "0 75% 50%",
+      "Recomendados": "150 80% 45%",
+      "Ficção Científica": "180 80% 50%"
+    },
+    "updated_at": "2026-03-23T00:29:45.716742+00:00"
+  },
+  {
+    "id": "fa9b9d2c-1d4d-48bb-920e-edec22426a4e",
+    "key": "meta_pixel",
+    "value": {
+      "pixel_id": "984783917460881",
+      "domain_verification": "<!--  Pixel Code --> <script> !function(f,b,e,v,n,t,s) {if(f.fbq)return;n=f.fbq=function(){n.callMethod? n.callMethod.apply(n,arguments):n.queue.push(arguments)}; if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0'; n.queue=[];t=b.createElement(e);t.async=!0; t.src=v;s=b.getElementsByTagName(e)[0]; s.parentNode.insertBefore(t,s)}(window, document,'script', 'https://connect.facebook.net/en_US/fbevents.js'); fbq('init', '984783917460881'); fbq('track', 'PageView'); </script> <noscript><img height=\"1\" width=\"1\" style=\"display:none\" src=\"https://www.facebook.com/tr?id=984783917460881&ev=PageView&noscript=1\" /></noscript> <!-- End Meta Pixel Code -->"
+    },
+    "updated_at": "2026-04-28T14:01:26.822404+00:00"
+  },
+  {
+    "id": "1202647e-c52b-44c1-bfb5-228cfac371c7",
+    "key": "nav_tabs",
+    "value": [
+      {
+        "icon": "sparkles",
+        "label": "Início",
+        "isExclusive": true,
+        "filterCategory": ""
+      },
+      {
+        "icon": "flame",
+        "label": "Hot",
+        "isExclusive": true,
+        "filterCategory": "Hot"
+      },
+      {
+        "icon": "ghost",
+        "label": "Lançamentos",
+        "isExclusive": true,
+        "filterCategory": "lançamentos"
+      },
+      {
+        "icon": "sword",
+        "label": "Animes",
+        "isExclusive": true,
+        "filterCategory": "Animes"
+      }
+    ],
+    "updated_at": "2026-11-02T23:36:32.029025+00:00"
+  }
+]

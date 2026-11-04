@@ -726,16 +726,17 @@ export const DEFAULT_EXTENSIONS_CONFIG: ExtensionsConfig = {
       },
     },
 
-    // 2. PIXEL-META (LIBERADO & INTERLIGADO)
+    // 2. PIXEL-META (BLOQUEADO)
     pixel_meta: {
       id: "pixel_meta",
       name: "Pixel-Meta (Facebook & Instagram + CAPI)",
       tagline: "Rastreamento avançado do Meta Ads com Pixel Browser + Conversions API (CAPI) server-side com deduplicação de eventos.",
       category: "pixels",
       icon: "Share2",
-      enabled: true,
-      isLocked: false,
-      badge: "META ADS + CAPI",
+      enabled: false,
+      isLocked: true,
+      lockReason: "Módulo bloqueado na sua licença. Requer HangarBox Enterprise Suite.",
+      badge: "🔒 BLOQUEADO",
       version: "v4.1.0",
       telemetry: {
         statusText: "Meta Graph API v19.0 Conectado",
@@ -760,16 +761,17 @@ export const DEFAULT_EXTENSIONS_CONFIG: ExtensionsConfig = {
       },
     },
 
-    // 3. PIXEL ÉVORA (IA) (LIBERADA & INTERLIGADA)
+    // 3. PIXEL ÉVORA (IA) (BLOQUEADA)
     pixel_evora: {
       id: "pixel_evora",
       name: "Pixel Évora (Atendente de IA 24/7)",
       tagline: "Assistente virtual e concierge inteligente treinada no catálogo para indicar séries, tirar dúvidas e fechar vendas no Pix.",
       category: "ai",
       icon: "Bot",
-      enabled: true,
-      isLocked: false,
-      badge: "IA CONVERSACIONAL",
+      enabled: false,
+      isLocked: true,
+      lockReason: "Módulo bloqueado na sua licença. Requer HangarBox Enterprise Suite.",
+      badge: "🔒 BLOQUEADO",
       version: "v3.0.0-AI",
       telemetry: {
         statusText: "Motor Neural GPT-4o Mini Ativo",
@@ -792,16 +794,17 @@ export const DEFAULT_EXTENSIONS_CONFIG: ExtensionsConfig = {
       },
     },
 
-    // 4. RADAR ANTIFRAUDE (LIBERADO & INTERLIGADO)
+    // 4. RADAR ANTIFRAUDE (BLOQUEADO)
     antifraud_shield: {
       id: "antifraud_shield",
       name: "Radar Antifraude & Proteção de Checkout",
       tagline: "Blindagem contra bots de checkout, spam de Pix não pagos, rate-limiting e bloqueio de e-mails descartáveis.",
       category: "security",
       icon: "ShieldAlert",
-      enabled: true,
-      isLocked: false,
-      badge: "ESCUDO NÍVEL 3",
+      enabled: false,
+      isLocked: true,
+      lockReason: "Módulo bloqueado na sua licença. Requer HangarBox Enterprise Suite.",
+      badge: "🔒 BLOQUEADO",
       version: "v2.1.0",
       telemetry: {
         statusText: "Blindagem Nível 3 Ativa",
@@ -821,16 +824,17 @@ export const DEFAULT_EXTENSIONS_CONFIG: ExtensionsConfig = {
       },
     },
 
-    // 5. WHATSAPP RECOVERY (LIBERADO & INTERLIGADO)
+    // 5. WHATSAPP RECOVERY (BLOQUEADO)
     whatsapp_recovery: {
       id: "whatsapp_recovery",
       name: "Recuperador WhatsApp Inteligente",
       tagline: "Lembretes automáticos humanizados para pedidos pendentes com código Pix gerado, interligado ao Gateway oficial.",
       category: "automation",
       icon: "MessageCircle",
-      enabled: true,
-      isLocked: false,
-      badge: "WHATSAPP SYNC",
+      enabled: false,
+      isLocked: true,
+      lockReason: "Módulo bloqueado na sua licença. Requer HangarBox Enterprise Suite.",
+      badge: "🔒 BLOQUEADO",
       version: "v2.4.0",
       telemetry: {
         statusText: "Interligado à Instância hangarbox-oficial",
