@@ -759,40 +759,47 @@ export const DEFAULT_EXTENSIONS_CONFIG: ExtensionsConfig = {
       },
     },
 
-    // 2. PIXEL-META (GATEWAY DIRETO META ADS & CAPI - BLOQUEADO)
+    // 2. PIXEL-META (PLATAFORMA AUTÔNOMA DE ANÚNCIOS META ADS - BLOQUEADO)
     pixel_meta: {
       id: "pixel_meta",
-      name: "Pixel-Meta (Gateway Direto Meta Ads & CAPI)",
-      tagline: "Túnel de acesso e gerenciamento direto ao Meta Ads Manager e API de Conversões integrado ao Pixel da loja.",
+      name: "Pixel-Meta (Estúdio & Controle de Anúncios Meta Ads)",
+      tagline: "Crie, faça upload de criativos, publique, filtre e controle todos os seus anúncios do Facebook e Instagram diretamente pelo painel, sem precisar abrir o Meta Ads Manager.",
       category: "pixels",
       icon: "Share2",
       enabled: false,
       isLocked: true,
       lockReason: "Módulo bloqueado na sua licença. Requer HangarBox Enterprise Suite.",
       badge: "🔒 BLOQUEADO",
-      version: "v4.1.0",
+      version: "v4.5.0-ADS",
       apiSpec: {
-        apiName: "Meta Marketing API v19.0 & Ads Direct Bridge",
+        apiName: "Meta Marketing API v19.0 (Ads Management & Automation Suite)",
         protocol: "Server-Side CAPI",
-        endpoint: "https://graph.facebook.com/v19.0/act_{ad_account_id}/insights & /events",
-        authType: "Meta Business OAuth 2.0 + System User Token",
+        endpoint: "https://graph.facebook.com/v19.0/act_{ad_account_id}/campaigns, /adcreatives & /ads",
+        authType: "Meta Business OAuth 2.0 (ads_management + ads_read)",
         samplePayload: JSON.stringify({
-          bridge_status: "AUTHENTICATED",
+          action: "CREATE_AND_PUBLISH_AD",
           ad_account_id: "act_849201948201948",
-          pixel_id: "849201948201948",
-          direct_access_url: "https://adsmanager.facebook.com/adsmanager/manage/campaigns?act=849201948201948",
-          live_telemetry: {
-            active_campaigns: 4,
-            daily_spend: "R$ 148,20",
-            roas_30d: "3.8x",
-            attributed_sales_pix: 28,
-            conversions_api_dedup_rate: "99.4%"
-          }
+          campaign: {
+            name: "HangarBox — Escala Série 'O quarterback perdido'",
+            objective: "OUTCOME_SALES",
+            status: "ACTIVE"
+          },
+          adset: {
+            daily_budget_brl: 30.00,
+            targeting: { geo_locations: { countries: ["BR"] }, age_min: 18, interests: ["Streaming de Séries", "Drama Dublado"] },
+            placements: ["instagram_reels", "instagram_feed", "facebook_feed"]
+          },
+          creative: {
+            title: "Assista Completo e Dublado no Player HangarBox",
+            video_asset_url: "https://cdn.hangarbox.com/trailers/quarterback.mp4",
+            call_to_action: "COMPRE_AGORA"
+          },
+          status: "PUBLISHED_LIVE"
         }, null, 2),
         humanDescription: {
-          whatItDoes: "Atua como uma ponte e método de acesso direto entre a sua loja e o Gerenciador de Anúncios da Meta. Em vez de ser apenas um script passivo, permite abrir e gerenciar suas campanhas do Meta Ads direto pelo painel e sincronizar os custos de anúncios com as vendas reais no Pix da loja.",
-          howItWorks: "Utiliza a Meta Marketing API conectada à sua Conta de Anúncios (act_XXXXXXXX) e ao Pixel ID. Quando você clica no túnel direto, o sistema autentica a sessão e puxa o desempenho de campanhas, cliques e conversões de forma unificada, com atalho direto de 1 clique para o Meta Ads Manager.",
-          businessImpact: "Centraliza a gestão de tráfego pago na mesma tela do catálogo de séries, eliminando a necessidade de alternar abas e mostrando o lucro líquido real de cada anúncio em tempo real."
+          whatItDoes: "É uma plataforma completa de controle e criação de anúncios embutida no seu painel que substitui o Gerenciador de Anúncios do Facebook/Instagram. Você seleciona a série do catálogo, faz upload do vídeo ou foto, define o orçamento diário, publica direto no ar e controla tudo (ativar, pausar, aumentar verba, filtrar por maior ROAS) sem nunca precisar entrar no Meta Ads Manager oficial.",
+          howItWorks: "Conecta-se diretamente aos endpoints da Meta Marketing API (/campaigns, /adsets, /adcreatives, /ads). Quando você clica em 'Publicar Anúncio', a API compila as mídias da série, ajusta para os formatos de Feed e Reels do Instagram/Facebook e lança a campanha ativa instantaneamente. Ao mesmo tempo, o painel recebe o retorno de cliques, valor gasto e compras no Pix em tempo real.",
+          businessImpact: "Elimina 100% da lentidão e complexidade do Gerenciador de Anúncios do Facebook, economiza horas da sua equipe e permite que você coloque anúncios no ar e pause os que não estão vendendo em poucos segundos."
         }
       },
       telemetry: {
