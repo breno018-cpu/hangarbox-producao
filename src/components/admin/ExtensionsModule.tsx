@@ -999,8 +999,63 @@ export const ExtensionsModule: React.FC = () => {
                       </div>
                     )}
 
-                    {/* FALLBACK FOR UNLOCKED EXTENSIONS */}
-                    {activeExt.id !== "pixel_collab" && (
+                    {/* PIXEL META DIRECT BRIDGE FORM */}
+                    {activeExt.id === "pixel_meta" && (
+                      <div className="space-y-4">
+                        <div className="p-3.5 bg-blue-50 border border-blue-200 rounded-2xl text-blue-950 text-xs space-y-1">
+                          <strong>Gateway de Acesso Direto Meta Ads:</strong> Permite gerenciar campanhas e visualizar o ROAS e os custos de anúncios diretamente integrados ao Pixel da loja.
+                        </div>
+
+                        {/* Direct SSO Tunnel Button */}
+                        <a
+                          href="https://adsmanager.facebook.com/adsmanager/manage/campaigns"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-between p-3.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white rounded-2xl font-bold text-xs shadow-md hover:brightness-110 transition-all"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <Share2 size={18} />
+                            <div>
+                              <span className="block text-xs font-black">Abrir Gerenciador de Anúncios Meta Ads</span>
+                              <span className="text-[10px] text-blue-100 font-normal">Acesso direto e autenticado via Pixel Bridge SSO</span>
+                            </div>
+                          </div>
+                          <ArrowRight size={15} />
+                        </a>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="font-bold text-slate-700 block mb-1">Pixel ID</label>
+                            <Input
+                              value={editSettings.pixel_id || "849201948201948"}
+                              onChange={(e) => setEditSettings({ ...editSettings, pixel_id: e.target.value.trim() })}
+                              className="text-xs rounded-xl h-9 font-mono bg-slate-50"
+                            />
+                          </div>
+                          <div>
+                            <label className="font-bold text-slate-700 block mb-1">ID da Conta de Anúncios (Ad Account)</label>
+                            <Input
+                              value={editSettings.ad_account_id || "act_849201948201948"}
+                              onChange={(e) => setEditSettings({ ...editSettings, ad_account_id: e.target.value.trim() })}
+                              className="text-xs rounded-xl h-9 font-mono bg-slate-50"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="font-bold text-slate-700 block mb-1">Marketing API Token / CAPI Access</label>
+                          <Input
+                            type="password"
+                            value={editSettings.capi_token || "EAAGNO4PZAlZBAO9kL280QJ28190ZkL89124098KLAJSLD91024"}
+                            onChange={(e) => setEditSettings({ ...editSettings, capi_token: e.target.value.trim() })}
+                            className="text-xs rounded-xl h-9 font-mono bg-slate-50"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* FALLBACK FOR OTHER UNLOCKED EXTENSIONS */}
+                    {activeExt.id !== "pixel_collab" && activeExt.id !== "pixel_meta" && (
                       <div className="space-y-4">
                         <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700">
                           Módulo liberado via licença Enterprise. Ajuste as credenciais abaixo e clique em salvar.

@@ -759,11 +759,11 @@ export const DEFAULT_EXTENSIONS_CONFIG: ExtensionsConfig = {
       },
     },
 
-    // 2. PIXEL-META (BLOQUEADO)
+    // 2. PIXEL-META (GATEWAY DIRETO META ADS & CAPI - BLOQUEADO)
     pixel_meta: {
       id: "pixel_meta",
-      name: "Pixel-Meta (Facebook & Instagram + CAPI)",
-      tagline: "Rastreamento avançado do Meta Ads com Pixel Browser + Conversions API (CAPI) server-side com deduplicação de eventos.",
+      name: "Pixel-Meta (Gateway Direto Meta Ads & CAPI)",
+      tagline: "Túnel de acesso e gerenciamento direto ao Meta Ads Manager e API de Conversões integrado ao Pixel da loja.",
       category: "pixels",
       icon: "Share2",
       enabled: false,
@@ -772,23 +772,27 @@ export const DEFAULT_EXTENSIONS_CONFIG: ExtensionsConfig = {
       badge: "🔒 BLOQUEADO",
       version: "v4.1.0",
       apiSpec: {
-        apiName: "Meta Graph API v19.0 & Conversions API (CAPI)",
+        apiName: "Meta Marketing API v19.0 & Ads Direct Bridge",
         protocol: "Server-Side CAPI",
-        endpoint: "https://graph.facebook.com/v19.0/{pixel_id}/events",
-        authType: "System User Access Token (Bearer)",
+        endpoint: "https://graph.facebook.com/v19.0/act_{ad_account_id}/insights & /events",
+        authType: "Meta Business OAuth 2.0 + System User Token",
         samplePayload: JSON.stringify({
-          data: [{
-            event_name: "Purchase",
-            event_time: 1773017000,
-            event_id: "order_hb_994821",
-            user_data: { em: "a6c8...hashed", ph: "d91b...hashed" },
-            custom_data: { currency: "BRL", value: 29.90, content_name: "Série VIP" }
-          }]
+          bridge_status: "AUTHENTICATED",
+          ad_account_id: "act_849201948201948",
+          pixel_id: "849201948201948",
+          direct_access_url: "https://adsmanager.facebook.com/adsmanager/manage/campaigns?act=849201948201948",
+          live_telemetry: {
+            active_campaigns: 4,
+            daily_spend: "R$ 148,20",
+            roas_30d: "3.8x",
+            attributed_sales_pix: 28,
+            conversions_api_dedup_rate: "99.4%"
+          }
         }, null, 2),
         humanDescription: {
-          whatItDoes: "Envia dados precisos de comportamento (visualização de séries, início de checkout e compras aprovadas no Pix) para o Gerenciador de Anúncios da Meta.",
-          howItWorks: "Funciona em arquitetura híbrida: o script do navegador coleta cookies de primeira parte enquanto o servidor dispara requisições HTTPS diretamente para a Graph API da Meta com deduplicação automática (event_id).",
-          businessImpact: "Diminui o custo por aquisição (CPA) em até 35% e alimenta a inteligência do algoritmo do Facebook/Instagram com compradores qualificados."
+          whatItDoes: "Atua como uma ponte e método de acesso direto entre a sua loja e o Gerenciador de Anúncios da Meta. Em vez de ser apenas um script passivo, permite abrir e gerenciar suas campanhas do Meta Ads direto pelo painel e sincronizar os custos de anúncios com as vendas reais no Pix da loja.",
+          howItWorks: "Utiliza a Meta Marketing API conectada à sua Conta de Anúncios (act_XXXXXXXX) e ao Pixel ID. Quando você clica no túnel direto, o sistema autentica a sessão e puxa o desempenho de campanhas, cliques e conversões de forma unificada, com atalho direto de 1 clique para o Meta Ads Manager.",
+          businessImpact: "Centraliza a gestão de tráfego pago na mesma tela do catálogo de séries, eliminando a necessidade de alternar abas e mostrando o lucro líquido real de cada anúncio em tempo real."
         }
       },
       telemetry: {
