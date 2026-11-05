@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { PLATFORM_LIMITS, validateImageUpload } from "@/lib/limits";
 import { stripEmojis } from "@/lib/utils";
+import { sanitizePaymentDescription } from "@/lib/security";
 
 export interface DbSerie {
   id: string;
@@ -367,7 +368,10 @@ export async function createMPPreference(params: {
       "Content-Type": "application/json",
       apikey: LOVABLE_ANON_KEY,
     },
-    body: JSON.stringify(params),
+    body: JSON.stringify({
+      ...params,
+      description: sanitizePaymentDescription((params as any).order_id || (params as any).external_reference || ""),
+    }),
   });
 
   if (!response.ok) {
@@ -381,7 +385,7 @@ export async function createMPPreference(params: {
 export async function createMPPixPayment(params: {
   order_id: string;
   amount: number;
-  description: string;
+  description?: string;
   payer: { name: string; email: string };
 }): Promise<{
   payment_id: string;
@@ -397,7 +401,10 @@ export async function createMPPixPayment(params: {
       "Content-Type": "application/json",
       apikey: LOVABLE_ANON_KEY,
     },
-    body: JSON.stringify(params),
+    body: JSON.stringify({
+      ...params,
+      description: sanitizePaymentDescription((params as any).order_id || (params as any).external_reference || ""),
+    }),
   });
 
   if (!response.ok) {

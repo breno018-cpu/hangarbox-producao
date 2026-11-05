@@ -4,6 +4,7 @@ import { X, Copy, Check, QrCode, ShieldCheck, Lock, Tag, ExternalLink, Download,
 import { Serie } from "@/data/series";
 import { Button } from "@/components/ui/button";
 import { type DbCoupon, type DbOrder, createOrder, createMPPixPayment, checkOrderPaymentStatus, fetchSeriesAccessLinks, resendOrderEmail } from "@/lib/api";
+import { sanitizePaymentDescription } from "@/lib/security";
 
 interface CheckoutModalProps {
   items: { serie: Serie }[];
@@ -218,7 +219,7 @@ const CheckoutModal = ({ items, totalPrice, onClose, onSuccess, appliedCoupon, d
         const pix = await createMPPixPayment({
           order_id: order.id,
           amount: finalPrice,
-          description: items.map((i) => i.serie.titulo).join(" | "),
+          description: sanitizePaymentDescription(order.id),
           payer: {
             name: customerName || customerEmail.split("@")[0],
             email: customerEmail,
