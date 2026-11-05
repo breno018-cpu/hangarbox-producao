@@ -1135,7 +1135,7 @@ export const DEFAULT_EXTENSIONS_CONFIG: ExtensionsConfig = {
       apiSpec: {
         apiName: "Webhook Dispatcher Engine v2.0",
         protocol: "Webhook Event",
-        endpoint: "https://hooks.zapier.com/hooks/catch/9124/hangarbox",
+        endpoint: "https://api.hangarbox.com/v1/webhooks/catch-demo",
         authType: "X-Webhook-Secret HMAC Header",
         samplePayload: JSON.stringify({
           event: "ORDER_PAID",
