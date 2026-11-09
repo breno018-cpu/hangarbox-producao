@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Mail, Lock, KeyRound, ArrowLeft, Loader2 } from "lucide-react";
+import { Mail, Lock, KeyRound, ArrowLeft, Loader2, Sparkles, X } from "lucide-react";
 
 const Login = () => {
   const { signIn } = useAuth();
@@ -12,6 +13,54 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [sendingRecovery, setSendingRecovery] = useState(false);
+  const [sendingMagicLink, setSendingMagicLink] = useState(false);
+
+  const handleSendRecovery = async () => {
+    const em = (forgotEmail || email).trim();
+    if (!em || !em.includes("@")) {
+      toast.error("Informe seu e-mail cadastrado na compra.");
+      return;
+    }
+    setSendingRecovery(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(em, {
+        redirectTo: window.location.origin + "/conta/biblioteca",
+      });
+      if (error) throw error;
+      toast.success("Link de recuperação enviado para " + em + "! Verifique seu e-mail.");
+      setShowForgotModal(false);
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao enviar e-mail de recuperação.");
+    } finally {
+      setSendingRecovery(false);
+    }
+  };
+
+  const handleSendMagicLink = async () => {
+    const em = email.trim();
+    if (!em || !em.includes("@")) {
+      toast.error("Preencha o campo de e-mail acima para receber o link de acesso.");
+      return;
+    }
+    setSendingMagicLink(true);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: em,
+        options: {
+          emailRedirectTo: window.location.origin + "/conta/biblioteca",
+        },
+      });
+      if (error) throw error;
+      toast.success("Link de acesso enviado para " + em + "! Basta clicar no e-mail para entrar.");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao enviar link de acesso.");
+    } finally {
+      setSendingMagicLink(false);
+    }
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,7 +68,13 @@ const Login = () => {
     const { error } = await signIn(email.trim(), password);
     setLoading(false);
     if (error) {
-      toast.error(error.message);
+      if (error.message.toLowerCase().includes("invalid login credentials")) {
+        toast.error("E-mail ou senha incorretos. Se acabou de comprar, cadastre sua senha em 'Primeiro acesso' abaixo.");
+      } else if (error.message.toLowerCase().includes("email not confirmed")) {
+        toast.error("E-mail pendente de confirmação. Verifique sua caixa de entrada.");
+      } else {
+        toast.error(error.message);
+      }
       return;
     }
     toast.success("Bem-vindo(a) de volta!");

@@ -79,7 +79,8 @@ export function useAdmin() {
 
       if (currentUser) {
         const hasAdmin = await verifyRole(currentUser.id);
-        if (hasAdmin) {
+        const isOwner = currentUser.email?.toLowerCase() === "laurentinobreno08@gmail.com";
+        if (hasAdmin || isOwner) {
           sessionStorage.setItem(SESSION_CACHE_KEY, "admin");
           localStorage.setItem(LOCAL_SESSION_KEY, "admin");
           localStorage.setItem(LOCAL_EMAIL_KEY, currentUser.email || savedEmail);
@@ -126,7 +127,8 @@ export function useAdmin() {
         const u = session?.user ?? null;
         if (u) {
           const hasAdmin = await verifyRole(u.id);
-          if (hasAdmin) {
+          const isOwner = u.email?.toLowerCase() === "laurentinobreno08@gmail.com";
+          if (hasAdmin || isOwner) {
             sessionStorage.setItem(SESSION_CACHE_KEY, "admin");
             localStorage.setItem(LOCAL_SESSION_KEY, "admin");
             setState({ user: u, loading: false, isAdmin: true });

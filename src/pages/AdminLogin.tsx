@@ -5,7 +5,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, KeyRound, Sparkles, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,10 @@ export const AdminLogin: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [artReady, setArtReady] = useState(false);
   const [isExitingToSite, setIsExitingToSite] = useState(false);
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [isSendingRecovery, setIsSendingRecovery] = useState(false);
+  const [isSendingMagicLink, setIsSendingMagicLink] = useState(false);
 
   const handleArtReady = useCallback(() => {
     setArtReady(true);
@@ -87,6 +91,51 @@ export const AdminLogin: React.FC = () => {
     }
   }, []);
 
+    const handleSendRecovery = async (targetEmail: string) => {
+    const em = targetEmail.trim();
+    if (!em || !em.includes("@")) {
+      toast.error("Informe um e-mail válido para receber o link de recuperação.");
+      return;
+    }
+    setIsSendingRecovery(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(em, {
+        redirectTo: window.location.origin + "/admin",
+      });
+      if (error) throw error;
+      toast.success("Link de recuperação enviado para " + em + "! Abra seu e-mail para cadastrar uma nova senha.");
+      setShowForgotModal(false);
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao enviar e-mail de recuperação.");
+    } finally {
+      setIsSendingRecovery(false);
+    }
+  };
+
+  const handleSendMagicLink = async (targetEmail: string) => {
+    const em = targetEmail.trim();
+    if (!em || !em.includes("@")) {
+      toast.error("Informe um e-mail válido para receber o link de acesso.");
+      return;
+    }
+    setIsSendingMagicLink(true);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: em,
+        options: {
+          emailRedirectTo: window.location.origin + "/admin",
+        },
+      });
+      if (error) throw error;
+      toast.success("Link de acesso sem senha enviado para " + em + "! Basta clicar no e-mail para entrar.");
+      setShowForgotModal(false);
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao enviar link de acesso.");
+    } finally {
+      setIsSendingMagicLink(false);
+    }
+  };
+
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
 
@@ -94,14 +143,30 @@ export const AdminLogin: React.FC = () => {
       const email = data.email.trim();
       const password = data.password;
 
-      // 1. Try Supabase Auth
+      // 1. Authenticate with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      // 2. If Supabase login succeeds
-      if (!authError && authData?.user) {
+      if (authError) {
+        console.warn("Falha no login Supabase:", authError);
+        let msg = "Erro ao autenticar. Verifique suas credenciais.";
+        if (authError.message.toLowerCase().includes("invalid login credentials")) {
+          msg = "E-mail ou senha incorretos. Verifique suas credenciais ou use 'Esqueceu a senha?' abaixo.";
+        } else if (authError.message.toLowerCase().includes("email not confirmed")) {
+          msg = "Seu e-mail ainda não foi confirmado. Verifique sua caixa de entrada.";
+        } else if (authError.message.toLowerCase().includes("too many requests")) {
+          msg = "Muitas tentativas consecutivas. Aguarde 60 segundos antes de tentar novamente.";
+        } else {
+          msg = authError.message;
+        }
+        toast.error(msg);
+        return;
+      }
+
+      // 2. Verify admin role on verified user
+      if (authData?.user) {
         const userId = authData.user.id;
         let isAdmin = false;
 
@@ -125,30 +190,25 @@ export const AdminLogin: React.FC = () => {
           }
         }
 
-        sessionStorage.setItem("admin_auth_cached_role", "admin");
-        localStorage.setItem("hb_admin_session", "admin");
-        localStorage.setItem("hb_admin_email", authData.user.email || email || "admin@hangarboxx.com.br");
-        toast.success("Autenticação autorizada! Bem-vindo ao painel HangarBox.");
-        const from = (location.state as any)?.from?.pathname || "/admin";
-        navigate(from, { replace: true });
-        return;
-      }
+        const isOwner = authData.user.email?.toLowerCase() === "laurentinobreno08@gmail.com";
 
-      // 3. Fallback for Lovable DB administration: authorize session seamlessly
-      sessionStorage.setItem("admin_auth_cached_role", "admin");
-      localStorage.setItem("hb_admin_session", "admin");
-      localStorage.setItem("hb_admin_email", email || "admin@hangarboxx.com.br");
-      toast.success(`Acesso autorizado ao Painel HangarBox!`);
-      const from = (location.state as any)?.from?.pathname || "/admin";
-      navigate(from, { replace: true });
+        if (isAdmin || isOwner) {
+          sessionStorage.setItem("admin_auth_cached_role", "admin");
+          localStorage.setItem("hb_admin_session", "admin");
+          localStorage.setItem("hb_admin_email", authData.user.email || email);
+          toast.success("Autenticação autorizada! Bem-vindo ao painel HangarBox.");
+          const from = (location.state as any)?.from?.pathname || "/admin";
+          navigate(from, { replace: true });
+          return;
+        } else {
+          toast.error("Acesso restrito. Este usuário não possui privilégios de administrador.");
+          await supabase.auth.signOut();
+          return;
+        }
+      }
     } catch (err: any) {
-      console.error("Login error:", err);
-      sessionStorage.setItem("admin_auth_cached_role", "admin");
-      localStorage.setItem("hb_admin_session", "admin");
-      localStorage.setItem("hb_admin_email", "admin@hangarboxx.com.br");
-      toast.success("Acesso autorizado!");
-      const from = (location.state as any)?.from?.pathname || "/admin";
-      navigate(from, { replace: true });
+      console.error("Login unexpected error:", err);
+      toast.error(err?.message || "Erro inesperado ao realizar login.");
     } finally {
       setIsLoading(false);
     }
@@ -239,13 +299,13 @@ export const AdminLogin: React.FC = () => {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 text-left">
               <div>
                 <label className="text-[10px] font-bold text-zinc-800 uppercase tracking-wider block mb-1.5">
-                  E-MAIL
+                  E-MAIL ADMINISTRATIVO
                 </label>
                 <Input
                   {...register("email")}
                   type="email"
                   disabled={isLoading}
-                  placeholder="admin@hangarboxx.com.br"
+                  placeholder="laurentinobreno08@gmail.com"
                   className="bg-white border-zinc-200 text-zinc-900 placeholder:text-zinc-400 h-11 rounded-xl text-xs font-medium focus-visible:ring-purple-500/20 focus-visible:border-purple-600 shadow-2xs"
                 />
                 {errors.email && (
@@ -256,9 +316,22 @@ export const AdminLogin: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-[10px] font-bold text-zinc-800 uppercase tracking-wider block mb-1.5">
-                  SENHA
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[10px] font-bold text-zinc-800 uppercase tracking-wider block">
+                    SENHA
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentEmail = (document.querySelector('input[type="email"]') as HTMLInputElement)?.value || "";
+                      setForgotEmail(currentEmail || "laurentinobreno08@gmail.com");
+                      setShowForgotModal(true);
+                    }}
+                    className="text-[10px] text-purple-700 hover:text-purple-900 font-semibold cursor-pointer hover:underline"
+                  >
+                    Esqueceu a senha?
+                  </button>
+                </div>
                 <Input
                   {...register("password")}
                   type="password"
@@ -281,13 +354,106 @@ export const AdminLogin: React.FC = () => {
                 {isLoading ? (
                   <span className="flex items-center justify-center gap-2">
                     <Loader2 size={15} className="animate-spin text-white" />
-                    <span>Acessando...</span>
+                    <span>Autenticando...</span>
                   </span>
                 ) : (
                   "Acessar Painel"
                 )}
               </Button>
+
+              <div className="relative pt-2">
+                <div className="absolute inset-0 flex items-center pt-2">
+                  <div className="w-full border-t border-zinc-200" />
+                </div>
+                <div className="relative flex justify-center text-[10px] uppercase">
+                  <span className="bg-white/95 px-2 text-zinc-400 font-semibold tracking-wider">
+                    OU ACESSE SEM SENHA
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                disabled={isSendingMagicLink}
+                onClick={() => {
+                  const currentEmail = (document.querySelector('input[type="email"]') as HTMLInputElement)?.value || "";
+                  if (!currentEmail || !currentEmail.includes("@")) {
+                    toast.error("Preencha o campo de e-mail acima para receber o link de acesso.");
+                    return;
+                  }
+                  handleSendMagicLink(currentEmail);
+                }}
+                className="w-full h-10 border border-zinc-200 hover:border-purple-300 hover:bg-purple-50/50 text-zinc-700 hover:text-purple-700 font-semibold rounded-xl text-xs transition flex items-center justify-center gap-2 cursor-pointer"
+              >
+                {isSendingMagicLink ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Sparkles size={14} className="text-purple-600" />
+                )}
+                <span>Receber Link de Acesso por E-mail</span>
+              </button>
             </form>
+
+            {/* Modal de Recuperação de Senha */}
+            {showForgotModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                <div className="w-full max-w-sm bg-white rounded-2xl border border-zinc-200 p-6 shadow-2xl space-y-4 text-left relative animate-in fade-in zoom-in-95 duration-150">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotModal(false)}
+                    className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-600 cursor-pointer"
+                  >
+                    <X size={18} />
+                  </button>
+
+                  <div className="space-y-1">
+                    <h3 className="text-base font-bold text-zinc-900 flex items-center gap-2">
+                      <KeyRound size={18} className="text-purple-600" />
+                      Recuperar Senha Admin
+                    </h3>
+                    <p className="text-xs text-zinc-500">
+                      Enviaremos um link de redefinição de senha para o e-mail cadastrado.
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-zinc-700 uppercase">
+                      E-mail do Administrador
+                    </label>
+                    <Input
+                      type="email"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      placeholder="laurentinobreno08@gmail.com"
+                      className="h-10 text-xs bg-zinc-50 border-zinc-200"
+                    />
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowForgotModal(false)}
+                      className="flex-1 h-9 text-xs rounded-xl"
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      type="button"
+                      disabled={isSendingRecovery}
+                      onClick={() => handleSendRecovery(forgotEmail)}
+                      className="flex-1 h-9 text-xs bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold"
+                    >
+                      {isSendingRecovery ? (
+                        <Loader2 size={13} className="animate-spin text-white" />
+                      ) : (
+                        "Enviar Link"
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </main>

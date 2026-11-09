@@ -22,6 +22,7 @@ import AccountLibrary from "./pages/account/Library";
 import Watch from "./pages/Watch";
 
 import AdminRoute from "./components/admin/AdminRoute";
+import PasswordRecoveryModal from "./components/PasswordRecoveryModal";
 import { useThemeColors } from "./hooks/useThemeColors";
 
 const ThemeInitializer = () => {
@@ -41,6 +42,7 @@ const App = () => {
         <Sonner />
         <MaintenanceOverlay />
         <BrowserRouter>
+          <PasswordRecoveryModal />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/packs" element={<PacksPage />} />
