@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { validateEmailSecurity, checkRecoveryRateLimit, recordRecoveryAttempt } from "@/lib/security";
 
 import { DitherField, DEFAULT_BRIDGE_SRC } from "@/components/admin/dither/DitherField";
 import { ProgressiveBlurEdge } from "@/components/admin/dither/ProgressiveBlurEdge";
@@ -91,46 +92,58 @@ export const AdminLogin: React.FC = () => {
     }
   }, []);
 
-    const handleSendRecovery = async (targetEmail: string) => {
-    const em = targetEmail.trim();
-    if (!em || !em.includes("@")) {
-      toast.error("Informe um e-mail válido para receber o link de recuperação.");
+  const handleSendRecovery = async (targetEmail: string) => {
+    const check = validateEmailSecurity(targetEmail);
+    if (!check.valid) {
+      toast.error(check.error || "Informe um e-mail válido para receber o link de recuperação.");
+      return;
+    }
+    const { throttled, remainingSeconds } = checkRecoveryRateLimit("admin_pwd_reset", 60);
+    if (throttled) {
+      toast.error(`Aguarde ${remainingSeconds} segundos antes de solicitar um novo link de recuperação.`);
       return;
     }
     setIsSendingRecovery(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(em, {
-        redirectTo: window.location.origin + "/admin",
+      await supabase.auth.resetPasswordForEmail(check.email, {
+        redirectTo: window.location.origin + "/redefinir-senha",
       });
-      if (error) throw error;
-      toast.success("Link de recuperação enviado para " + em + "! Abra seu e-mail para cadastrar uma nova senha.");
+      recordRecoveryAttempt("admin_pwd_reset");
+      toast.success("Solicitação processada com segurança. Se o e-mail existir, o link foi enviado.");
       setShowForgotModal(false);
-    } catch (err: any) {
-      toast.error(err?.message || "Erro ao enviar e-mail de recuperação.");
+    } catch {
+      toast.success("Solicitação processada. Se o e-mail existir, você receberá as instruções.");
+      setShowForgotModal(false);
     } finally {
       setIsSendingRecovery(false);
     }
   };
 
   const handleSendMagicLink = async (targetEmail: string) => {
-    const em = targetEmail.trim();
-    if (!em || !em.includes("@")) {
-      toast.error("Informe um e-mail válido para receber o link de acesso.");
+    const check = validateEmailSecurity(targetEmail);
+    if (!check.valid) {
+      toast.error(check.error || "Informe um e-mail válido para receber o link de acesso.");
+      return;
+    }
+    const { throttled, remainingSeconds } = checkRecoveryRateLimit("admin_magic_link", 60);
+    if (throttled) {
+      toast.error(`Aguarde ${remainingSeconds} segundos antes de solicitar outro link de acesso.`);
       return;
     }
     setIsSendingMagicLink(true);
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: em,
+      await supabase.auth.signInWithOtp({
+        email: check.email,
         options: {
           emailRedirectTo: window.location.origin + "/admin",
         },
       });
-      if (error) throw error;
-      toast.success("Link de acesso sem senha enviado para " + em + "! Basta clicar no e-mail para entrar.");
+      recordRecoveryAttempt("admin_magic_link");
+      toast.success("Link de acesso sem senha despachado! Verifique sua caixa de entrada.");
       setShowForgotModal(false);
-    } catch (err: any) {
-      toast.error(err?.message || "Erro ao enviar link de acesso.");
+    } catch {
+      toast.success("Solicitação processada. Se o e-mail existir, você receberá o link.");
+      setShowForgotModal(false);
     } finally {
       setIsSendingMagicLink(false);
     }

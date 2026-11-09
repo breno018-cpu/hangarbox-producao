@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Mail, Lock, KeyRound, ArrowLeft, Loader2, Sparkles, X } from "lucide-react";
+import { validateEmailSecurity, checkRecoveryRateLimit, recordRecoveryAttempt } from "@/lib/security";
 
 const Login = () => {
   const { signIn } = useAuth();
@@ -19,44 +20,56 @@ const Login = () => {
   const [sendingMagicLink, setSendingMagicLink] = useState(false);
 
   const handleSendRecovery = async () => {
-    const em = (forgotEmail || email).trim();
-    if (!em || !em.includes("@")) {
-      toast.error("Informe seu e-mail cadastrado na compra.");
+    const raw = (forgotEmail || email).trim();
+    const check = validateEmailSecurity(raw);
+    if (!check.valid) {
+      toast.error(check.error || "Informe um e-mail válido cadastrado na compra.");
+      return;
+    }
+    const { throttled, remainingSeconds } = checkRecoveryRateLimit("client_pwd_reset", 60);
+    if (throttled) {
+      toast.error(`Aguarde ${remainingSeconds} segundos antes de solicitar um novo link.`);
       return;
     }
     setSendingRecovery(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(em, {
-        redirectTo: window.location.origin + "/conta/biblioteca",
+      await supabase.auth.resetPasswordForEmail(check.email, {
+        redirectTo: window.location.origin + "/redefinir-senha",
       });
-      if (error) throw error;
-      toast.success("Link de recuperação enviado para " + em + "! Verifique seu e-mail.");
+      recordRecoveryAttempt("client_pwd_reset");
+      toast.success("Solicitação processada com segurança. Se o e-mail existir, você receberá o link.");
       setShowForgotModal(false);
-    } catch (err: any) {
-      toast.error(err?.message || "Erro ao enviar e-mail de recuperação.");
+    } catch {
+      toast.success("Solicitação processada. Se o e-mail existir, você receberá as instruções.");
+      setShowForgotModal(false);
     } finally {
       setSendingRecovery(false);
     }
   };
 
   const handleSendMagicLink = async () => {
-    const em = email.trim();
-    if (!em || !em.includes("@")) {
-      toast.error("Preencha o campo de e-mail acima para receber o link de acesso.");
+    const check = validateEmailSecurity(email.trim());
+    if (!check.valid) {
+      toast.error(check.error || "Preencha o campo de e-mail acima para receber o link de acesso.");
+      return;
+    }
+    const { throttled, remainingSeconds } = checkRecoveryRateLimit("client_magic_link", 60);
+    if (throttled) {
+      toast.error(`Aguarde ${remainingSeconds} segundos antes de solicitar outro link de acesso.`);
       return;
     }
     setSendingMagicLink(true);
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: em,
+      await supabase.auth.signInWithOtp({
+        email: check.email,
         options: {
           emailRedirectTo: window.location.origin + "/conta/biblioteca",
         },
       });
-      if (error) throw error;
-      toast.success("Link de acesso enviado para " + em + "! Basta clicar no e-mail para entrar.");
-    } catch (err: any) {
-      toast.error(err?.message || "Erro ao enviar link de acesso.");
+      recordRecoveryAttempt("client_magic_link");
+      toast.success("Link de acesso sem senha despachado! Verifique sua caixa de entrada.");
+    } catch {
+      toast.success("Solicitação processada. Se o e-mail existir, você receberá o link de acesso.");
     } finally {
       setSendingMagicLink(false);
     }

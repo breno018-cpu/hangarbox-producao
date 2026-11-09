@@ -23,6 +23,7 @@ import Watch from "./pages/Watch";
 
 import AdminRoute from "./components/admin/AdminRoute";
 import PasswordRecoveryModal from "./components/PasswordRecoveryModal";
+import PasswordRecoveryPage from "./pages/PasswordRecoveryPage";
 import { useThemeColors } from "./hooks/useThemeColors";
 
 const ThemeInitializer = () => {
@@ -57,6 +58,9 @@ const App = () => {
             <Route path="/conta/login" element={<AccountLogin />} />
             <Route path="/conta/cadastro" element={<AccountSignup />} />
             <Route path="/conta/primeiro-acesso" element={<AccountFirstAccess />} />
+            <Route path="/recuperar-senha" element={<PasswordRecoveryPage mode="request" />} />
+            <Route path="/redefinir-senha" element={<PasswordRecoveryPage mode="reset" />} />
+            <Route path="/conta/recuperar-senha" element={<PasswordRecoveryPage mode="request" />} />
             <Route path="/conta/biblioteca" element={<AccountLibrary />} />
             <Route path="/assistir/:serieId" element={<Watch />} />
             <Route path="*" element={<NotFound />} />

@@ -142,3 +142,127 @@ export function maskSensitiveKey(key: string, visiblePrefix = 4, visibleSuffix =
   const mask = "•".repeat(Math.max(4, key.length - visiblePrefix - visibleSuffix));
   return start + mask + end;
 }
+
+/**
+ * Validação rigorosa e sanitização anti-injection de e-mail (RFC 5322).
+ * Rejeita injeção de cabeçalhos de e-mail (\r, \n, %0a, %0d).
+ */
+export function validateEmailSecurity(rawEmail: string): { valid: boolean; email: string; error?: string } {
+  if (!rawEmail || typeof rawEmail !== "string") {
+    return { valid: false, email: "", error: "O e-mail é obrigatório." };
+  }
+  const trimmed = rawEmail.trim().toLowerCase();
+  
+  // Anti-CRLF header injection check
+  if (/[\r\n%0a%0d]/.test(trimmed)) {
+    return { valid: false, email: "", error: "Formato de e-mail inválido ou caracteres proibidos." };
+  }
+
+  // RFC 5322 standard email regex
+  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+  if (!emailRegex.test(trimmed)) {
+    return { valid: false, email: "", error: "Endereço de e-mail inválido." };
+  }
+
+  if (trimmed.length > 254) {
+    return { valid: false, email: "", error: "E-mail excede o tamanho máximo permitido." };
+  }
+
+  return { valid: true, email: trimmed };
+}
+
+export interface PasswordStrengthResult {
+  score: 0 | 1 | 2 | 3 | 4;
+  label: "Muito Fraca" | "Fraca" | "Média" | "Forte" | "Excelente";
+  color: string;
+  valid: boolean;
+  errors: string[];
+}
+
+/**
+ * Avaliação rigorosa da entropia e força da senha segundo diretrizes NIST SP 800-63B.
+ */
+export function checkPasswordStrength(password: string): PasswordStrengthResult {
+  const errors: string[] = [];
+  if (!password) {
+    return { score: 0, label: "Muito Fraca", color: "#ef4444", valid: false, errors: ["A senha não pode estar em branco."] };
+  }
+
+  const COMMON_BLACKLIST = [
+    "123456", "12345678", "123456789", "password", "senha123", "admin123",
+    "hangarbox", "hangar123", "master123", "qwerty", "brasil123", "mudar123"
+  ];
+
+  if (COMMON_BLACKLIST.includes(password.toLowerCase())) {
+    return { score: 0, label: "Muito Fraca", color: "#ef4444", valid: false, errors: ["Esta senha é muito comum e fácil de adivinhar."] };
+  }
+
+  let points = 0;
+  if (password.length >= 8) points++;
+  else errors.push("Mínimo de 8 caracteres.");
+
+  if (/[A-Z]/.test(password)) points++;
+  else errors.push("Pelo menos uma letra maiúscula.");
+
+  if (/[a-z]/.test(password)) points++;
+  else errors.push("Pelo menos uma letra minúscula.");
+
+  if (/[0-9]/.test(password)) points++;
+  else errors.push("Pelo menos um número.");
+
+  if (/[^A-Za-z0-9]/.test(password)) points++;
+
+  let score: 0 | 1 | 2 | 3 | 4 = 0;
+  let label: "Muito Fraca" | "Fraca" | "Média" | "Forte" | "Excelente" = "Muito Fraca";
+  let color = "#ef4444";
+
+  if (points <= 1) {
+    score = 0; label = "Muito Fraca"; color = "#ef4444";
+  } else if (points === 2) {
+    score = 1; label = "Fraca"; color = "#f97316";
+  } else if (points === 3) {
+    score = 2; label = "Média"; color = "#eab308";
+  } else if (points === 4) {
+    score = 3; label = "Forte"; color = "#22c55e";
+  } else if (points >= 5) {
+    score = 4; label = "Excelente"; color = "#10b981";
+  }
+
+  const valid = password.length >= 8 && points >= 3;
+  return { score, label, color, valid, errors };
+}
+
+/**
+ * Remove fragmentos sensíveis da URL no navegador (#access_token=...&type=recovery)
+ * de forma atômica para evitar vazamentos em logs do navegador, histórico ou cabeçalhos Referer.
+ */
+export function stripSensitiveUrlHash(): void {
+  if (typeof window === "undefined") return;
+  if (window.location.hash && (window.location.hash.includes("access_token") || window.location.hash.includes("type=recovery"))) {
+    window.history.replaceState(null, "", window.location.pathname + window.location.search);
+  }
+}
+
+/**
+ * Controle de Rate Limiting no cliente para recuperação de senha (anti-flood/spam).
+ */
+export function checkRecoveryRateLimit(key: string, cooldownSeconds = 60): { throttled: boolean; remainingSeconds: number } {
+  if (typeof window === "undefined") return { throttled: false, remainingSeconds: 0 };
+  const storageKey = "hb_ratelimit_" + key;
+  const lastTime = sessionStorage.getItem(storageKey);
+  if (!lastTime) return { throttled: false, remainingSeconds: 0 };
+
+  const diffMs = Date.now() - parseInt(lastTime, 10);
+  const cooldownMs = cooldownSeconds * 1000;
+  if (diffMs < cooldownMs) {
+    const remaining = Math.ceil((cooldownMs - diffMs) / 1000);
+    return { throttled: true, remainingSeconds: remaining };
+  }
+  return { throttled: false, remainingSeconds: 0 };
+}
+
+export function recordRecoveryAttempt(key: string): void {
+  if (typeof window === "undefined") return;
+  sessionStorage.setItem("hb_ratelimit_" + key, Date.now().toString());
+}
+
