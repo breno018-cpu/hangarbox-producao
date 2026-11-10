@@ -39,7 +39,9 @@ import {
   Pause,
   PlusCircle,
   Filter,
-  Film
+  Film,
+  Coins,
+  Wallet
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -75,11 +77,14 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Sparkles,
   ShieldAlert,
   Bell,
+  Coins,
+  Wallet,
 };
 
 const CATEGORIES = [
   { id: "all", label: "Todas as APIs & Extensões" },
   { id: "core", label: "Plataforma Core" },
+  { id: "payments", label: "Pagamentos Cripto" },
   { id: "pixels", label: "Pixels & Tráfego" },
   { id: "ai", label: "IA & Atendimento" },
   { id: "security", label: "Segurança" },
@@ -302,6 +307,8 @@ export const ExtensionsModule: React.FC = () => {
         toast.success("Radar Antifraude: Blindagem Nível 3 ativa. Escaneamento de IPs em 100%.");
       } else if (ext.id === "whatsapp_recovery") {
         toast.success("WhatsApp Recovery: Vinculado à sessão hangarbox-oficial. Fila de disparos limpa.");
+      } else if (ext.id === "pixel_pay") {
+        toast.success("PixelPay: Nós Blockchain conectados! Liquidação descentralizada ativa com 0% risco de chargeback.");
       } else {
         toast.success(`Integração com "${ext.name}" testada e validada com sucesso! (HTTP 200 OK)`);
       }
@@ -1172,8 +1179,90 @@ export const ExtensionsModule: React.FC = () => {
                       </div>
                     )}
 
+                    {/* PIXELPAY CRYPTO GATEWAY FORM */}
+                    {activeExt.id === "pixel_pay" && (
+                      <div className="space-y-4">
+                        <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-950 text-xs space-y-1.5">
+                          <div className="flex items-center gap-2 font-bold text-emerald-900">
+                            <ShieldCheck size={16} className="text-emerald-600" />
+                            Blindagem Ativa: 0% Risco de Chargeback & Anonimato Criptográfico Total
+                          </div>
+                          <p className="text-[11px] text-emerald-800 leading-relaxed">
+                            O PixelPay liquida pagamentos descentralizados via redes Blockchain (TRC-20, Solana, BTC, Monero). Uma vez minerada e confirmada na rede, a transação torna-se <strong>matematicamente irreversível</strong>, protegendo seu faturamento contra disputas bancárias e auditorias de adquirentes convencionais.
+                          </p>
+                        </div>
+
+                        <div>
+                          <label className="font-bold text-slate-700 block mb-1">
+                            Carteira Fria de Recebimento (Multi-Sig Cold Vault)
+                          </label>
+                          <Input
+                            value={editSettings.cold_wallet_address || "TX7kLp92mQz8R4vYbW1sN6eFcHgJtAaDkM"}
+                            onChange={(e) => setEditSettings({ ...editSettings, cold_wallet_address: e.target.value.trim() })}
+                            className="text-xs rounded-xl h-9 font-mono bg-slate-50"
+                            placeholder="Ex: TX7kLp92mQz8R4vYbW1sN6eFcHgJtAaDkM"
+                          />
+                          <p className="text-[10px] text-slate-500 mt-1">Endereço público onde as liquidações instantâneas são depositadas.</p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="font-bold text-slate-700 block mb-1">Criptoativos Habilitados</label>
+                            <Input
+                              value={editSettings.accepted_assets || "USDT (TRC-20), USDT (Solana), Bitcoin, Monero"}
+                              onChange={(e) => setEditSettings({ ...editSettings, accepted_assets: e.target.value })}
+                              className="text-xs rounded-xl h-9 bg-slate-50"
+                            />
+                          </div>
+                          <div>
+                            <label className="font-bold text-slate-700 block mb-1">Tempo de Confirmação na Rede</label>
+                            <Input
+                              value="Média de 3.2s (Instant Settlement)"
+                              readOnly
+                              className="text-xs rounded-xl h-9 bg-slate-100 text-slate-600 font-mono"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2 pt-1 border-t border-slate-200">
+                          <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                            <div>
+                              <div className="text-xs font-bold text-slate-900">Imunidade a Estornos (Zero Chargeback)</div>
+                              <div className="text-[10px] text-slate-500">Bloqueia qualquer contestação bancária através de contratos descentralizados.</div>
+                            </div>
+                            <Switch
+                              checked={editSettings.chargeback_immunity !== false}
+                              onCheckedChange={(val) => setEditSettings({ ...editSettings, chargeback_immunity: val })}
+                            />
+                          </div>
+
+                          <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                            <div>
+                              <div className="text-xs font-bold text-slate-900">Camada de Anonimato ZKP (Zero-Knowledge)</div>
+                              <div className="text-[10px] text-slate-500">Desassocia o IP do comprador e o e-mail da hash da transação na blockchain.</div>
+                            </div>
+                            <Switch
+                              checked={editSettings.zero_knowledge_privacy !== false}
+                              onCheckedChange={(val) => setEditSettings({ ...editSettings, zero_knowledge_privacy: val })}
+                            />
+                          </div>
+
+                          <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                            <div>
+                              <div className="text-xs font-bold text-slate-900">Auto-Liquidação Instantânea</div>
+                              <div className="text-[10px] text-slate-500">Transfere o saldo imediatamente para a carteira fria ao atingir 1 confirmação.</div>
+                            </div>
+                            <Switch
+                              checked={editSettings.auto_instant_settlement !== false}
+                              onCheckedChange={(val) => setEditSettings({ ...editSettings, auto_instant_settlement: val })}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* FALLBACK FOR OTHER UNLOCKED EXTENSIONS */}
-                    {activeExt.id !== "pixel_collab" && activeExt.id !== "pixel_meta" && (
+                    {activeExt.id !== "pixel_collab" && activeExt.id !== "pixel_meta" && activeExt.id !== "pixel_pay" && (
                       <div className="space-y-4">
                         <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700">
                           Módulo liberado via licença Enterprise. Ajuste as credenciais abaixo e clique em salvar.

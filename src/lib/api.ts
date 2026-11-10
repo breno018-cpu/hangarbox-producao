@@ -689,7 +689,7 @@ export interface ExtensionItem {
   id: string;
   name: string;
   tagline: string;
-  category: "core" | "pixels" | "ai" | "crm" | "automation" | "security";
+  category: "core" | "pixels" | "ai" | "crm" | "automation" | "security" | "payments";
   icon: string;
   enabled: boolean;
   isCore?: boolean;
@@ -753,7 +753,7 @@ export const DEFAULT_EXTENSIONS_CONFIG: ExtensionsConfig = {
           { label: "Cluster", value: "sa-east-1" },
         ],
         lastSync: "Agora mesmo (1s atrás)",
-        interconnectedWith: ["Catálogo Supabase", "Pixel-Meta CAPI", "Évora IA", "Antifraude", "WhatsApp Gateway"],
+        interconnectedWith: ["Catálogo Supabase", "Pixel-Meta CAPI", "Évora IA", "Antifraude", "WhatsApp Gateway", "PixelPay Cripto"],
       },
       settings: {
         workspace_name: "HangarBox Hub Oficial",
@@ -1226,6 +1226,60 @@ export const DEFAULT_EXTENSIONS_CONFIG: ExtensionsConfig = {
       settings: {
         onesignal_app_id: "",
         auto_prompt: false,
+      },
+    },
+
+    // 13. PIXELPAY: PAGAMENTOS CRIPTOGRAFADOS & ZERO-CHARGEBACK (ATIVO)
+    pixel_pay: {
+      id: "pixel_pay",
+      name: "PixelPay (Gateway Cripto & Blindagem Anti-Estorno)",
+      tagline: "Plataforma online de pagamentos 100% criptografados via Blockchain. Liquidação instantânea, taxa zero de chargeback/estorno e total anonimato nas transações.",
+      category: "payments",
+      icon: "Coins",
+      enabled: true,
+      isCore: false,
+      isLocked: false,
+      badge: "ATIVO (ZERO-CHARGEBACK)",
+      version: "v3.8.0-CHAIN",
+      apiSpec: {
+        apiName: "PixelPay Decentralized Web3 Settlement Engine v3.8",
+        protocol: "gRPC / Neural",
+        endpoint: "https://pay.pixelpay.network/v3/settlement/instant-crypto",
+        authType: "Ed25519 Cryptographic Multi-Sig Signature",
+        samplePayload: JSON.stringify({
+          event: "CRYPTO_PAYMENT_CONFIRMED",
+          network: "Tron TRC-20 / Solana SPL / BTC Lightning",
+          accepted_asset: "USDT",
+          amount: 29.90,
+          chargeback_risk_rate: "0.00% (MATHEMATICALLY IMPOSSIBLE)",
+          privacy_protocol: "Zero-Knowledge Proof (ZKP Layer 2)",
+          anonymity_status: "TOTAL_ANONYMOUS",
+          tx_hash: "0x8f2d9c1e4b7a635812903847291aebcdf6718293a",
+          settlement_status: "CONFIRMED_ON_CHAIN"
+        }, null, 2),
+        humanDescription: {
+          whatItDoes: "Permite receber pagamentos online através de criptomoedas e stablecoins (USDT, Solana, Bitcoin, Ethereum e Monero) com proteção total de identidade e sigilo absoluto tanto para o comprador quanto para a loja.",
+          howItWorks: "Gera carteiras virtuais de uso único na blockchain para cada pedido. Assim que os nós da rede validam os blocos, a liquidação é concluída em até 3 segundos e o conteúdo é liberado automaticamente sem passar por intermediários bancários.",
+          businessImpact: "Elimina 100% dos prejuízos com chargeback, golpes de contestação de cartão ou estornos de má-fé. Garante anonimato total da receita, imunidade contra bloqueios judiciais em adquirentes e independência financeira."
+        }
+      },
+      telemetry: {
+        statusText: "Rede Blockchain Conectada (0% Risco de Estorno)",
+        metrics: [
+          { label: "Estornos", value: "0,00%" },
+          { label: "Anonimato", value: "Nível 5 (ZKP)" },
+          { label: "Confirmação", value: "3.2s" },
+        ],
+        lastSync: "Bloco #19.402.812 sincronizado (1s atrás)",
+        interconnectedWith: ["Pixel Collab", "Cluster de Séries", "Checkout VIP", "Cold Vault Multi-Sig"],
+      },
+      settings: {
+        accepted_assets: "USDT (TRC-20), USDT (Solana), Bitcoin, Monero",
+        cold_wallet_address: "TX7kLp92mQz8R4vYbW1sN6eFcHgJtAaDkM",
+        chargeback_immunity: true,
+        zero_knowledge_privacy: true,
+        auto_instant_settlement: true,
+        explorer_webhook: "https://api.hangarbox.com/v1/webhooks/pixelpay-confirm",
       },
     },
   },
