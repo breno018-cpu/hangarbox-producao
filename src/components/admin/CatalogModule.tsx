@@ -21,6 +21,14 @@ import {
   SlidersHorizontal,
   AlertTriangle,
   Trophy,
+  Loader2,
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  AlertCircle,
+  RotateCcw,
 } from "lucide-react";
 import TopWatchedModal from "./TopWatchedModal";
 import { Button } from "@/components/ui/button";
@@ -41,10 +49,12 @@ import { PLATFORM_LIMITS, canCreateSerie, validateImageUpload } from "@/lib/limi
 import { AnimatedCountUp } from "./AnimatedCountUp";
 
 interface CatalogModuleProps {
-  series: DbSerie[];
+  series?: DbSerie[];
   onSaveSerie: (serie: Partial<DbSerie>) => Promise<void>;
   onDeleteSerie: (id: string) => Promise<void>;
   isLoading?: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
 }
 
 const formatBRL = (value: number) => {
@@ -98,15 +108,22 @@ const InteractiveStarRating: React.FC<{
 };
 
 export const CatalogModule: React.FC<CatalogModuleProps> = ({
-  series,
+  series = [],
   onSaveSerie,
   onDeleteSerie,
+  isLoading = false,
+  isError = false,
+  onRetry,
 }) => {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
   const [topWatchedModalOpen, setTopWatchedModalOpen] = useState(false);
+
+  // Pagination state (default 36 items for snappy responsive rendering)
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(36);
 
   // Edit / Create Dialog state
   const [isOpenModal, setIsOpenModal] = useState(false);
@@ -119,33 +136,67 @@ export const CatalogModule: React.FC<CatalogModuleProps> = ({
   // Delete confirm dialog
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-  // All unique categories for filter
+  // Reset to first page when filtering or searching
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [search, categoryFilter, statusFilter, pageSize]);
+
+  // All unique categories for filter (defensive guard against undefined/null)
   const allCategories = useMemo(() => {
     const set = new Set<string>();
-    series.forEach((s) => (s.categoria || []).forEach((c) => set.add(c)));
+    (series || []).forEach((s) => {
+      if (s && Array.isArray(s.categoria)) {
+        s.categoria.forEach((c) => {
+          if (c && typeof c === "string") set.add(c.trim());
+        });
+      }
+    });
     return Array.from(set).sort();
   }, [series]);
 
   // Filtered series
   const filteredSeries = useMemo(() => {
-    return series.filter((s) => {
+    const list = Array.isArray(series) ? series : [];
+    const q = search.trim().toLowerCase();
+    return list.filter((s) => {
+      if (!s) return false;
       const matchSearch =
-        s.titulo.toLowerCase().includes(search.toLowerCase()) ||
-        (s.resumo || "").toLowerCase().includes(search.toLowerCase());
+        !q ||
+        (s.titulo || "").toLowerCase().includes(q) ||
+        (s.resumo || "").toLowerCase().includes(q);
       const matchCategory =
-        categoryFilter === "all" || (s.categoria || []).includes(categoryFilter);
+        categoryFilter === "all" || (Array.isArray(s.categoria) && s.categoria.includes(categoryFilter));
       const matchStatus = statusFilter === "all" || s.status === statusFilter;
       return matchSearch && matchCategory && matchStatus;
     });
   }, [series, search, categoryFilter, statusFilter]);
 
   const stats = useMemo(() => {
-    const active = series.filter((s) => s.status === "ativo").length;
-    const inactive = series.length - active;
-    const animeCount = series.filter((s) => (s.categoria || []).includes("Anime")).length;
-    const seriesCount = series.length - animeCount;
-    return { active, inactive, animeCount, seriesCount };
+    const list = Array.isArray(series) ? series : [];
+    const active = list.filter((s) => s?.status === "ativo").length;
+    const inactive = list.length - active;
+    const animeCount = list.filter((s) => Array.isArray(s?.categoria) && s.categoria.includes("Anime")).length;
+    const seriesCount = list.length - animeCount;
+    return { active, inactive, animeCount, seriesCount, total: list.length };
   }, [series]);
+
+  // Paginated window
+  const totalFiltered = filteredSeries.length;
+  const totalPages = pageSize === -1 ? 1 : Math.max(1, Math.ceil(totalFiltered / pageSize));
+  const effectivePage = Math.min(Math.max(1, currentPage), totalPages);
+
+  const paginatedSeries = useMemo(() => {
+    if (pageSize === -1) return filteredSeries;
+    const start = (effectivePage - 1) * pageSize;
+    return filteredSeries.slice(start, start + pageSize);
+  }, [filteredSeries, effectivePage, pageSize]);
+
+  const handleClearFilters = () => {
+    setSearch("");
+    setCategoryFilter("all");
+    setStatusFilter("all");
+    setCurrentPage(1);
+  };
 
   const handleOpenNew = () => {
     const check = canCreateSerie(series.length);
@@ -450,254 +501,525 @@ export const CatalogModule: React.FC<CatalogModuleProps> = ({
             <Plus size={16} />
             <span>Novo Item</span>
             <span className="text-[10px] bg-white/20 text-white px-1.5 py-0.5 rounded-full font-medium ml-1">
-              {series.length}/100
+              {series.length}/{PLATFORM_LIMITS.SERIES_MAX}
             </span>
           </Button>
         </div>
       </div>
 
       {/* Grid View in White Theme */}
-      {viewMode === "grid" ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          {filteredSeries.length === 0 ? (
-            <div className="col-span-full py-16 text-center text-slate-400">
-              Nenhuma obra encontrada para os filtros atuais.
+            {/* Sincronização / Carregamento / Erro / Conteúdo Principal */}
+      {isLoading && (!series || series.length === 0) ? (
+        /* Skeleton Loading State */
+        <div className="space-y-4">
+          <div className="flex items-center justify-between p-4 bg-purple-50/80 border border-purple-200/80 rounded-2xl text-xs text-purple-900 font-semibold shadow-xs animate-pulse">
+            <div className="flex items-center gap-2.5">
+              <Loader2 size={18} className="text-purple-600 animate-spin" />
+              <span>Carregando catálogo de obras em tempo real do banco de dados...</span>
             </div>
-          ) : (
-            filteredSeries.map((s) => {
-              const isAnime = (s.categoria || []).includes("Anime");
-              return (
-                <div
-                  key={s.id}
-                  className="group relative rounded-2xl bg-white border border-slate-200 overflow-hidden flex flex-col hover:border-slate-300 hover:shadow-md transition-all duration-300 shadow-xs"
-                >
-                  {/* Poster Thumbnail */}
-                  <div className="relative aspect-[2/3] w-full bg-slate-100 overflow-hidden">
-                    {s.capa_url ? (
-                      <img
-                        src={s.capa_url}
-                        alt={s.titulo}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
-                        <Film size={32} />
-                        <span className="text-[10px] mt-1 font-medium">Sem Imagem</span>
-                      </div>
-                    )}
+            <span className="text-[11px] text-purple-600/80">Sincronizando 300+ títulos</span>
+          </div>
 
-                    {/* Gradient Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
-
-                    {/* Top Badges */}
-                    <div className="absolute top-2 left-2 right-2 flex items-center justify-between pointer-events-none">
-                      <Badge
-                        variant="secondary"
-                        className={`text-[9px] px-1.5 py-0.5 border font-semibold shadow-xs ${
-                          isAnime
-                            ? "bg-purple-600 text-white border-purple-400/40"
-                            : "bg-rose-600 text-white border-rose-400/40"
-                        }`}
-                      >
-                        {isAnime ? "Anime" : "Série"}
-                      </Badge>
-
-                      <div className="flex items-center gap-1 bg-white/95 backdrop-blur-md px-1.5 py-0.5 rounded-md border border-slate-200 text-[10px] text-amber-500 font-bold shadow-xs">
-                        <Star size={10} className="fill-amber-500 text-amber-500" />
-                        {Number(s.rating || 0).toFixed(1)}
-                      </div>
-                    </div>
-
-                    {/* Status indicator on bottom of poster */}
-                    <div className="absolute bottom-2 left-2 flex items-center gap-1">
-                      <span
-                        className={`w-2 h-2 rounded-full ${
-                          s.status === "ativo" ? "bg-emerald-400" : "bg-slate-400"
-                        }`}
-                      />
-                      <span className="text-[10px] font-semibold text-white drop-shadow">
-                        {s.status === "ativo" ? "Ativo" : "Inativo"}
-                      </span>
-                    </div>
-
-                    {s.is_hero && (
-                      <div className="absolute bottom-2 right-2">
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-400 text-amber-950 font-bold shadow-xs">
-                          Hero
-                        </span>
-                      </div>
-                    )}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div
+                key={i}
+                className="rounded-2xl bg-white border border-slate-200 overflow-hidden flex flex-col shadow-xs animate-pulse"
+              >
+                <div className="aspect-[2/3] w-full bg-slate-200 relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_1.5s_infinite]" />
+                </div>
+                <div className="p-3.5 space-y-2 flex-1 flex flex-col justify-between">
+                  <div className="space-y-1.5">
+                    <div className="h-3 bg-slate-200 rounded w-3/4" />
+                    <div className="h-2.5 bg-slate-100 rounded w-full" />
                   </div>
-
-                  {/* Info & Content */}
-                  <div className="p-3.5 flex-1 flex flex-col justify-between">
-                    <div>
-                      <h4 className="font-bold text-xs text-slate-900 line-clamp-1 group-hover:text-rose-600 transition-colors">
-                        {s.titulo}
-                      </h4>
-                      <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2">
-                        {s.resumo || "Sem sinopse informada."}
-                      </p>
-                    </div>
-
-                    <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
-                      <div className="text-xs font-bold text-slate-900">
-                        R$ {formatBRL(Number(s.preco || 0))}
-                      </div>
-
-                      <div className="flex items-center gap-1">
-                        {/* Quick toggle anime / serie button */}
-                        <button
-                          onClick={() => handleToggleAnimeTag(s)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-colors"
-                          title={isAnime ? "Alternar para Série" : "Alternar para Anime"}
-                        >
-                          <Tv size={14} />
-                        </button>
-
-                        {/* Edit button */}
-                        <button
-                          onClick={() => handleOpenEdit(s)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors"
-                          title="Editar Item"
-                        >
-                          <Edit size={14} />
-                        </button>
-
-                        {/* Delete button */}
-                        <button
-                          onClick={() => setDeleteConfirmId(s.id)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                          title="Excluir Item"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                    <div className="h-3 bg-slate-200 rounded w-12" />
+                    <div className="h-6 w-14 bg-slate-100 rounded-lg" />
                   </div>
                 </div>
-              );
-            })
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : isError && (!series || series.length === 0) ? (
+        /* Error State */
+        <div className="p-8 text-center bg-white border border-rose-200 rounded-3xl shadow-xs space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto">
+            <AlertCircle size={24} />
+          </div>
+          <h3 className="font-bold text-slate-900 text-sm">
+            Não foi possível carregar as obras do catálogo
+          </h3>
+          <p className="text-xs text-slate-500 max-w-md mx-auto">
+            Houve uma instabilidade temporária na conexão com o banco de dados Supabase. Verifique sua conexão e tente novamente.
+          </p>
+          <div className="pt-2">
+            <Button
+              onClick={() => onRetry?.()}
+              className="bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl px-4 py-2 gap-2 shadow-xs"
+            >
+              <RefreshCw size={14} />
+              <span>Recarregar Catálogo</span>
+            </Button>
+          </div>
+        </div>
+      ) : viewMode === "grid" ? (
+        /* Grid View in White Theme */
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {filteredSeries.length === 0 ? (
+              <div className="col-span-full py-16 text-center text-slate-400 bg-white border border-slate-200 rounded-2xl p-8 space-y-3">
+                <Film size={36} className="mx-auto text-slate-300" />
+                <p className="text-sm font-semibold text-slate-600">
+                  Nenhuma obra encontrada para os filtros atuais.
+                </p>
+                {(search || categoryFilter !== "all" || statusFilter !== "all") && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleClearFilters}
+                    className="text-xs border-slate-200 text-slate-700 hover:bg-slate-50 gap-1.5 rounded-xl"
+                  >
+                    <RotateCcw size={12} />
+                    <span>Limpar filtros de busca</span>
+                  </Button>
+                )}
+              </div>
+            ) : (
+              paginatedSeries.map((s) => {
+                const isAnime = (s.categoria || []).includes("Anime");
+                return (
+                  <div
+                    key={s.id}
+                    className="group relative rounded-2xl bg-white border border-slate-200 overflow-hidden flex flex-col hover:border-slate-300 hover:shadow-md transition-all duration-300 shadow-xs"
+                  >
+                    {/* Poster Thumbnail */}
+                    <div className="relative aspect-[2/3] w-full bg-slate-100 overflow-hidden">
+                      {s.capa_url ? (
+                        <img
+                          src={s.capa_url}
+                          alt={s.titulo}
+                          loading="lazy"
+                          decoding="async"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
+                          <Film size={32} />
+                          <span className="text-[10px] mt-1 font-medium">Sem Imagem</span>
+                        </div>
+                      )}
+
+                      {/* Gradient Overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
+
+                      {/* Top Badges */}
+                      <div className="absolute top-2 left-2 right-2 flex items-center justify-between pointer-events-none">
+                        <Badge
+                          variant="secondary"
+                          className={`text-[9px] px-1.5 py-0.5 border font-semibold shadow-xs ${
+                            isAnime
+                              ? "bg-purple-600 text-white border-purple-400/40"
+                              : "bg-rose-600 text-white border-rose-400/40"
+                          }`}
+                        >
+                          {isAnime ? "Anime" : "Série"}
+                        </Badge>
+
+                        <div className="flex items-center gap-1 bg-white/95 backdrop-blur-md px-1.5 py-0.5 rounded-md border border-slate-200 text-[10px] text-amber-500 font-bold shadow-xs">
+                          <Star size={10} className="fill-amber-500 text-amber-500" />
+                          {Number(s.rating || 0).toFixed(1)}
+                        </div>
+                      </div>
+
+                      {/* Status indicator on bottom of poster */}
+                      <div className="absolute bottom-2 left-2 flex items-center gap-1">
+                        <span
+                          className={`w-2 h-2 rounded-full ${
+                            s.status === "ativo" ? "bg-emerald-400" : "bg-slate-400"
+                          }`}
+                        />
+                        <span className="text-[10px] font-semibold text-white drop-shadow">
+                          {s.status === "ativo" ? "Ativo" : "Inativo"}
+                        </span>
+                      </div>
+
+                      {s.is_hero && (
+                        <div className="absolute bottom-2 right-2">
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-400 text-amber-950 font-bold shadow-xs">
+                            Hero
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Info & Content */}
+                    <div className="p-3.5 flex-1 flex flex-col justify-between">
+                      <div>
+                        <h4 className="font-bold text-xs text-slate-900 line-clamp-1 group-hover:text-rose-600 transition-colors">
+                          {s.titulo}
+                        </h4>
+                        <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2">
+                          {s.resumo || "Sem sinopse informada."}
+                        </p>
+                      </div>
+
+                      <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
+                        <div className="text-xs font-bold text-slate-900">
+                          R$ {formatBRL(Number(s.preco || 0))}
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                          {/* Quick toggle anime / serie button */}
+                          <button
+                            onClick={() => handleToggleAnimeTag(s)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-colors"
+                            title={isAnime ? "Alternar para Série" : "Alternar para Anime"}
+                          >
+                            <Tv size={14} />
+                          </button>
+
+                          {/* Edit button */}
+                          <button
+                            onClick={() => handleOpenEdit(s)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+                            title="Editar Obra"
+                          >
+                            <Edit size={14} />
+                          </button>
+
+                          {/* Delete button */}
+                          <button
+                            onClick={() => setDeleteConfirmId(s.id)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                            title="Excluir Item"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Pagination Controls */}
+          {totalFiltered > 0 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-200 text-xs text-slate-600 bg-white p-3.5 rounded-2xl shadow-xs">
+              <div className="flex items-center gap-2">
+                <span>
+                  Exibindo{" "}
+                  <strong>
+                    {pageSize === -1 ? 1 : (effectivePage - 1) * pageSize + 1}–
+                    {pageSize === -1
+                      ? totalFiltered
+                      : Math.min(effectivePage * pageSize, totalFiltered)}
+                  </strong>{" "}
+                  de <strong>{totalFiltered}</strong> obras
+                  {series.length !== totalFiltered && (
+                    <span className="text-slate-400 ml-1">
+                      (total {series.length})
+                    </span>
+                  )}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap justify-end">
+                <div className="flex items-center gap-1.5 mr-2">
+                  <span className="text-[11px] text-slate-500 font-medium">Por página:</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => setPageSize(Number(e.target.value))}
+                    className="h-8 px-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 outline-none focus:border-rose-500"
+                  >
+                    <option value={24}>24</option>
+                    <option value={36}>36</option>
+                    <option value={72}>72</option>
+                    <option value={120}>120</option>
+                    <option value={-1}>Todas ({totalFiltered})</option>
+                  </select>
+                </div>
+
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 p-1 rounded-xl shadow-2xs">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={effectivePage === 1}
+                      onClick={() => setCurrentPage(1)}
+                      className="h-7 w-7 p-0 rounded-lg text-slate-600 disabled:opacity-30"
+                      title="Primeira Página"
+                    >
+                      <ChevronsLeft size={14} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={effectivePage === 1}
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      className="h-7 w-7 p-0 rounded-lg text-slate-600 disabled:opacity-30"
+                      title="Página Anterior"
+                    >
+                      <ChevronLeft size={14} />
+                    </Button>
+
+                    <div className="px-2 text-xs font-bold text-slate-800">
+                      Página {effectivePage} de {totalPages}
+                    </div>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={effectivePage >= totalPages}
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      className="h-7 w-7 p-0 rounded-lg text-slate-600 disabled:opacity-30"
+                      title="Próxima Página"
+                    >
+                      <ChevronRight size={14} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={effectivePage >= totalPages}
+                      onClick={() => setCurrentPage(totalPages)}
+                      className="h-7 w-7 p-0 rounded-lg text-slate-600 disabled:opacity-30"
+                      title="Última Página"
+                    >
+                      <ChevronsRight size={14} />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
         </div>
       ) : (
         /* Table View in White */
-        <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-xs">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-700">
-              <thead className="bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">
-                <tr>
-                  <th className="px-5 py-3.5">Capa & Título</th>
-                  <th className="px-5 py-3.5">Categorias</th>
-                  <th className="px-5 py-3.5">Preço</th>
-                  <th className="px-5 py-3.5">Avaliação</th>
-                  <th className="px-5 py-3.5">Status</th>
-                  <th className="px-5 py-3.5 text-right">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredSeries.map((s) => (
-                  <tr key={s.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-14 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden shrink-0 shadow-xs">
-                          {s.capa_url && (
-                            <img
-                              src={s.capa_url}
-                              alt=""
-                              className="w-full h-full object-cover"
-                            />
-                          )}
-                        </div>
-                        <div>
-                          <p className="font-bold text-slate-900 text-xs">{s.titulo}</p>
-                          <p className="text-[11px] text-slate-500 line-clamp-1 max-w-xs">
-                            {s.resumo || "—"}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-
-                    <td className="px-5 py-3.5">
-                      <div className="flex flex-wrap gap-1 max-w-xs">
-                        {(s.categoria || []).map((c, i) => (
-                          <Badge
-                            key={i}
-                            variant="secondary"
-                            className="bg-slate-100 text-slate-700 text-[10px] border border-slate-200 font-medium"
-                          >
-                            {c}
-                          </Badge>
-                        ))}
-                      </div>
-                    </td>
-
-                    <td className="px-5 py-3.5 font-bold text-slate-900 text-xs">
-                      R$ {formatBRL(Number(s.preco || 0))}
-                    </td>
-
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-1 text-amber-500 text-xs font-bold">
-                        <Star size={13} className="fill-amber-500" />
-                        {Number(s.rating || 0).toFixed(1)}
-                      </div>
-                    </td>
-
-                    <td className="px-5 py-3.5">
-                      <button
-                        onClick={() => handleToggleStatus(s)}
-                        className="flex items-center gap-1.5 text-xs transition-colors"
-                      >
-                        {s.status === "ativo" ? (
-                          <>
-                            <ToggleRight size={20} className="text-emerald-600" />
-                            <span className="text-emerald-700 font-semibold">Ativo</span>
-                          </>
-                        ) : (
-                          <>
-                            <ToggleLeft size={20} className="text-slate-400" />
-                            <span className="text-slate-500 font-medium">Inativo</span>
-                          </>
-                        )}
-                      </button>
-                    </td>
-
-                    <td className="px-5 py-3.5 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleToggleAnimeTag(s)}
-                          className="h-8 px-2 text-slate-500 hover:text-purple-600 text-xs rounded-lg hover:bg-purple-50"
-                        >
-                          Anime / Série
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleOpenEdit(s)}
-                          className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg"
-                        >
-                          <Edit size={14} />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDeleteConfirmId(s.id)}
-                          className="h-8 w-8 p-0 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg"
-                        >
-                          <Trash2 size={14} />
-                        </Button>
-                      </div>
-                    </td>
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm text-slate-700">
+                <thead className="bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+                  <tr>
+                    <th className="px-5 py-3.5">Capa & Título</th>
+                    <th className="px-5 py-3.5">Categorias</th>
+                    <th className="px-5 py-3.5">Preço</th>
+                    <th className="px-5 py-3.5">Avaliação</th>
+                    <th className="px-5 py-3.5">Status</th>
+                    <th className="px-5 py-3.5 text-right">Ações</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredSeries.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-16 text-center text-slate-400">
+                        Nenhuma obra encontrada para os filtros atuais.
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedSeries.map((s) => (
+                      <tr key={s.id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-14 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden shrink-0 shadow-xs">
+                              {s.capa_url ? (
+                                <img
+                                  src={s.capa_url}
+                                  alt=""
+                                  loading="lazy"
+                                  decoding="async"
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-slate-400">
+                                  <Film size={16} />
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-bold text-slate-900 text-xs">{s.titulo}</p>
+                              <p className="text-[11px] text-slate-500 line-clamp-1 max-w-xs">
+                                {s.resumo || "—"}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="px-5 py-3.5">
+                          <div className="flex flex-wrap gap-1 max-w-xs">
+                            {(s.categoria || []).map((c, i) => (
+                              <Badge
+                                key={i}
+                                variant="secondary"
+                                className="bg-slate-100 text-slate-700 text-[10px] border border-slate-200 font-medium"
+                              >
+                                {c}
+                              </Badge>
+                            ))}
+                          </div>
+                        </td>
+
+                        <td className="px-5 py-3.5 font-bold text-slate-900 text-xs">
+                          R$ {formatBRL(Number(s.preco || 0))}
+                        </td>
+
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-1 text-amber-500 text-xs font-bold">
+                            <Star size={13} className="fill-amber-500" />
+                            {Number(s.rating || 0).toFixed(1)}
+                          </div>
+                        </td>
+
+                        <td className="px-5 py-3.5">
+                          <button
+                            onClick={() => handleToggleStatus(s)}
+                            className="flex items-center gap-1.5 text-xs transition-colors"
+                          >
+                            {s.status === "ativo" ? (
+                              <>
+                                <ToggleRight size={20} className="text-emerald-600" />
+                                <span className="text-emerald-700 font-semibold">Ativo</span>
+                              </>
+                            ) : (
+                              <>
+                                <ToggleLeft size={20} className="text-slate-400" />
+                                <span className="text-slate-500 font-medium">Inativo</span>
+                              </>
+                            )}
+                          </button>
+                        </td>
+
+                        <td className="px-5 py-3.5 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleToggleAnimeTag(s)}
+                              className="h-8 px-2 text-slate-500 hover:text-purple-600 text-xs rounded-lg hover:bg-purple-50"
+                            >
+                              Anime / Série
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleOpenEdit(s)}
+                              className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg"
+                            >
+                              <Edit size={14} />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDeleteConfirmId(s.id)}
+                              className="h-8 w-8 p-0 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg"
+                            >
+                              <Trash2 size={14} />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
+
+          {/* Pagination Controls for Table View */}
+          {totalFiltered > 0 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-200 text-xs text-slate-600 bg-white p-3.5 rounded-2xl shadow-xs">
+              <div className="flex items-center gap-2">
+                <span>
+                  Exibindo{" "}
+                  <strong>
+                    {pageSize === -1 ? 1 : (effectivePage - 1) * pageSize + 1}–
+                    {pageSize === -1
+                      ? totalFiltered
+                      : Math.min(effectivePage * pageSize, totalFiltered)}
+                  </strong>{" "}
+                  de <strong>{totalFiltered}</strong> obras
+                  {series.length !== totalFiltered && (
+                    <span className="text-slate-400 ml-1">
+                      (total {series.length})
+                    </span>
+                  )}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap justify-end">
+                <div className="flex items-center gap-1.5 mr-2">
+                  <span className="text-[11px] text-slate-500 font-medium">Por página:</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => setPageSize(Number(e.target.value))}
+                    className="h-8 px-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 outline-none focus:border-rose-500"
+                  >
+                    <option value={24}>24</option>
+                    <option value={36}>36</option>
+                    <option value={72}>72</option>
+                    <option value={120}>120</option>
+                    <option value={-1}>Todas ({totalFiltered})</option>
+                  </select>
+                </div>
+
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 p-1 rounded-xl shadow-2xs">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={effectivePage === 1}
+                      onClick={() => setCurrentPage(1)}
+                      className="h-7 w-7 p-0 rounded-lg text-slate-600 disabled:opacity-30"
+                      title="Primeira Página"
+                    >
+                      <ChevronsLeft size={14} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={effectivePage === 1}
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      className="h-7 w-7 p-0 rounded-lg text-slate-600 disabled:opacity-30"
+                      title="Página Anterior"
+                    >
+                      <ChevronLeft size={14} />
+                    </Button>
+
+                    <div className="px-2 text-xs font-bold text-slate-800">
+                      Página {effectivePage} de {totalPages}
+                    </div>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={effectivePage >= totalPages}
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      className="h-7 w-7 p-0 rounded-lg text-slate-600 disabled:opacity-30"
+                      title="Próxima Página"
+                    >
+                      <ChevronRight size={14} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={effectivePage >= totalPages}
+                      onClick={() => setCurrentPage(totalPages)}
+                      className="h-7 w-7 p-0 rounded-lg text-slate-600 disabled:opacity-30"
+                      title="Última Página"
+                    >
+                      <ChevronsRight size={14} />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
-
       {/* Create / Edit Dialog Modal in White */}
       {isOpenModal && editItem && (
         <Dialog open={isOpenModal} onOpenChange={setIsOpenModal}>

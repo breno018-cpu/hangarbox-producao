@@ -130,7 +130,12 @@ export async function createSerie(serie: Omit<DbSerie, "id" | "created_at" | "up
     resumo: stripEmojis(serie.resumo),
   };
   const { data, error } = await supabase.from("series").insert(payload as any).select().single();
-  if (error) throw error;
+  if (error) {
+    if ((error as any).code === "42501" || error.message?.includes("violates row-level security policy")) {
+      throw new Error("Permissão negada (RLS). Sua sessão administrativa expirou ou precisa ser renovada. Faça login novamente no painel /auth.");
+    }
+    throw error;
+  }
   return data as unknown as DbSerie;
 }
 
@@ -141,13 +146,23 @@ export async function updateSerie(id: string, updates: Partial<DbSerie>): Promis
     ...(updates.resumo !== undefined ? { resumo: stripEmojis(updates.resumo) } : {}),
   };
   const { data, error } = await supabase.from("series").update(payload as any).eq("id", id).select().single();
-  if (error) throw error;
+  if (error) {
+    if ((error as any).code === "42501" || error.message?.includes("violates row-level security policy")) {
+      throw new Error("Permissão negada (RLS). Sua sessão administrativa expirou ou precisa ser renovada. Faça login novamente no painel /auth.");
+    }
+    throw error;
+  }
   return data as unknown as DbSerie;
 }
 
 export async function deleteSerie(id: string): Promise<void> {
   const { error } = await supabase.from("series").delete().eq("id", id);
-  if (error) throw error;
+  if (error) {
+    if ((error as any).code === "42501" || error.message?.includes("violates row-level security policy")) {
+      throw new Error("Permissão negada (RLS). Sua sessão administrativa expirou ou precisa ser renovada. Faça login novamente no painel /auth.");
+    }
+    throw error;
+  }
 }
 
 // ========== IMAGE UPLOAD ==========

@@ -206,6 +206,15 @@ export const AdminLogin: React.FC = () => {
         const isOwner = authData.user.email?.toLowerCase() === "laurentinobreno08@gmail.com";
 
         if (isAdmin || isOwner) {
+          if (!isAdmin && authData.user?.id) {
+            try {
+              await supabase.functions.invoke("assign-admin-role", {
+                body: { user_id: authData.user.id },
+              });
+            } catch (roleErr) {
+              console.warn("Auto-assign admin role attempt:", roleErr);
+            }
+          }
           sessionStorage.setItem("admin_auth_cached_role", "admin");
           localStorage.setItem("hb_admin_session", "admin");
           localStorage.setItem("hb_admin_email", authData.user.email || email);

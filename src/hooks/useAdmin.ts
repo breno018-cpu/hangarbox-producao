@@ -81,6 +81,15 @@ export function useAdmin() {
         const hasAdmin = await verifyRole(currentUser.id);
         const isOwner = currentUser.email?.toLowerCase() === "laurentinobreno08@gmail.com";
         if (hasAdmin || isOwner) {
+          if (!hasAdmin && currentUser.id) {
+            try {
+              supabase.functions.invoke("assign-admin-role", {
+                body: { user_id: currentUser.id },
+              }).catch(() => {});
+            } catch {
+              // ignore
+            }
+          }
           sessionStorage.setItem(SESSION_CACHE_KEY, "admin");
           localStorage.setItem(LOCAL_SESSION_KEY, "admin");
           localStorage.setItem(LOCAL_EMAIL_KEY, currentUser.email || savedEmail);

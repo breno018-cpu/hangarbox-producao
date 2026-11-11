@@ -20,17 +20,17 @@ import { motion } from "framer-motion";
 import AnimatedCountUp from "./AnimatedCountUp";
 
 interface UsageLimitsCardProps {
-  series: DbSerie[];
-  orders: DbOrder[];
-  coupons: DbCoupon[];
+  series?: DbSerie[];
+  orders?: DbOrder[];
+  coupons?: DbCoupon[];
 }
 
 const AVERAGE_IMAGE_SIZE_MB = 0.85;
 
 export const UsageLimitsCard: React.FC<UsageLimitsCardProps> = ({
-  series,
-  orders,
-  coupons,
+  series = [],
+  orders = [],
+  coupons = [],
 }) => {
   // Calculations
   const seriesCount = series.length;

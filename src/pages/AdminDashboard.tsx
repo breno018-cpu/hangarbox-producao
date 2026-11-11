@@ -56,10 +56,16 @@ export const AdminDashboard: React.FC = () => {
   });
 
   // 2. Query: Series
-  const { data: series = [], isLoading: loadingSeries } = useQuery({
+  const {
+    data: series = [],
+    isLoading: loadingSeries,
+    isError: errorSeries,
+    refetch: refetchSeries,
+  } = useQuery({
     queryKey: ["admin_series"],
     queryFn: fetchSeries,
     staleTime: 1000 * 60, // 1m
+    retry: 2,
   });
 
   // 3. Query: Coupons
@@ -274,6 +280,8 @@ export const AdminDashboard: React.FC = () => {
               onSaveSerie={handleSaveSerie}
               onDeleteSerie={handleDeleteSerie}
               isLoading={loadingSeries}
+              isError={errorSeries}
+              onRetry={() => refetchSeries()}
             />
           </TabsContent>
 
