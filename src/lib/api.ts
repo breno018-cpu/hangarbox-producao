@@ -140,15 +140,35 @@ export async function createSerie(serie: Omit<DbSerie, "id" | "created_at" | "up
 }
 
 export async function updateSerie(id: string, updates: Partial<DbSerie>): Promise<DbSerie> {
+  // Strip immutable columns that should not be updated
+  const { id: _id, created_at: _ca, updated_at: _ua, ...cleanUpdates } = updates as any;
   const payload = {
-    ...updates,
-    ...(updates.titulo !== undefined ? { titulo: stripEmojis(updates.titulo) } : {}),
-    ...(updates.resumo !== undefined ? { resumo: stripEmojis(updates.resumo) } : {}),
+    ...cleanUpdates,
+    ...(cleanUpdates.titulo !== undefined ? { titulo: stripEmojis(cleanUpdates.titulo) } : {}),
+    ...(cleanUpdates.resumo !== undefined ? { resumo: stripEmojis(cleanUpdates.resumo) } : {}),
+    ...(cleanUpdates.link_acesso !== undefined ? { link_acesso: String(cleanUpdates.link_acesso || "").trim() } : {}),
+    ...(cleanUpdates.stream_url !== undefined ? { stream_url: cleanUpdates.stream_url ? String(cleanUpdates.stream_url).trim() : null } : {}),
   };
-  const { data, error } = await supabase.from("series").update(payload as any).eq("id", id).select().single();
+
+  const { data, error } = await supabase
+    .from("series")
+    .update(payload as any)
+    .eq("id", id)
+    .select()
+    .single();
+
   if (error) {
-    if ((error as any).code === "42501" || error.message?.includes("violates row-level security policy")) {
-      throw new Error("Permissão negada (RLS). Sua sessão administrativa expirou ou precisa ser renovada. Faça login novamente no painel /auth.");
+    console.error("Erro no Supabase ao atualizar série:", error);
+    if (
+      (error as any).code === "42501" ||
+      (error as any).code === "PGRST116" ||
+      error.message?.includes("violates row-level security policy") ||
+      error.message?.includes("0 rows") ||
+      error.message?.includes("coerce")
+    ) {
+      throw new Error(
+        "Permissão negada no banco de dados (RLS). A alteração não foi gravada porque o banco de dados exige permissão 'admin' no Supabase. Faça login em /auth com seu e-mail e senha de administrador ou execute o script SQL de permissões."
+      );
     }
     throw error;
   }

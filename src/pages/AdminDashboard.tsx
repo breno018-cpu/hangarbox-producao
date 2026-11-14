@@ -10,10 +10,13 @@ import {
   Sparkles,
   Mail,
   Boxes,
+  AlertTriangle,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { useAdmin } from "@/hooks/useAdmin";
+import { supabase } from "@/integrations/supabase/client";
+import { Link } from "react-router-dom";
 import {
   fetchSeries,
   createSerie,
@@ -47,6 +50,19 @@ export const AdminDashboard: React.FC = () => {
   const { user, signOut } = useAdmin();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<string>("sales");
+  const [hasDbSession, setHasDbSession] = useState<boolean | null>(null);
+
+  React.useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setHasDbSession(!!session);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setHasDbSession(!!session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   // 1. Query: Orders
   const { data: orders = [], isLoading: loadingOrders } = useQuery({
@@ -171,6 +187,30 @@ export const AdminDashboard: React.FC = () => {
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+        {/* Banner de Aviso de Sessão Supabase caso esteja em modo local sem token de escrita */}
+        {hasDbSession === false && (
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 bg-amber-50 border border-amber-300 rounded-2xl text-xs text-amber-900 shadow-xs">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-700 shrink-0">
+                <AlertTriangle size={18} />
+              </div>
+              <div>
+                <p className="font-bold text-amber-950 text-xs sm:text-sm">
+                  Atenção: Sessão administrativa não autenticada no banco Supabase
+                </p>
+                <p className="text-amber-800 text-[11px] mt-0.5">
+                  Você está navegando com cache de sessão local. As consultas funcionam, mas <strong>para salvar links de acesso, transmissões e novas séries no banco de dados</strong>, faça login com sua conta administradora.
+                </p>
+              </div>
+            </div>
+            <Link
+              to="/auth"
+              className="px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:brightness-110 text-white font-bold rounded-xl text-xs whitespace-nowrap shadow-xs transition-all shrink-0"
+            >
+              Autenticar em /auth
+            </Link>
+          </div>
+        )}
         {/* Real-time Usage Limits & Platform Health */}
         <UsageLimitsCard series={series} orders={orders} coupons={coupons} />
 

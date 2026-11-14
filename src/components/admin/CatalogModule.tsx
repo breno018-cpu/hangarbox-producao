@@ -225,7 +225,11 @@ export const CatalogModule: React.FC<CatalogModuleProps> = ({
   };
 
   const handleOpenEdit = (s: DbSerie) => {
-    setEditItem({ ...s });
+    setEditItem({
+      ...s,
+      link_acesso: s.link_acesso || "",
+      stream_url: s.stream_url || "",
+    });
     setIsOpenModal(true);
   };
 
@@ -664,6 +668,23 @@ export const CatalogModule: React.FC<CatalogModuleProps> = ({
                         <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2">
                           {s.resumo || "Sem sinopse informada."}
                         </p>
+
+                        <div className="flex items-center gap-1.5 mt-2 flex-wrap text-[10px]">
+                          {s.link_acesso ? (
+                            <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md font-semibold" title={s.link_acesso}>
+                              <LinkIcon size={10} /> Link OK
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-rose-600 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded-md font-semibold">
+                              <LinkIcon size={10} /> Sem link
+                            </span>
+                          )}
+                          {s.stream_url ? (
+                            <span className="inline-flex items-center gap-1 text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.5 rounded-md font-semibold" title={s.stream_url}>
+                              <Video size={10} /> Player OK
+                            </span>
+                          ) : null}
+                        </div>
                       </div>
 
                       <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
@@ -845,6 +866,15 @@ export const CatalogModule: React.FC<CatalogModuleProps> = ({
                               <p className="text-[11px] text-slate-500 line-clamp-1 max-w-xs">
                                 {s.resumo || "—"}
                               </p>
+                              <div className="flex items-center gap-2 mt-1 text-[10px]">
+                                {s.link_acesso ? (
+                                  <span className="text-emerald-700 font-medium truncate max-w-[200px]" title={s.link_acesso}>
+                                    🔗 {s.link_acesso}
+                                  </span>
+                                ) : (
+                                  <span className="text-rose-600 font-medium">⚠️ Sem link de entrega</span>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </td>
