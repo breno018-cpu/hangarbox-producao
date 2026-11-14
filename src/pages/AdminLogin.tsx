@@ -203,7 +203,7 @@ export const AdminLogin: React.FC = () => {
           }
         }
 
-        const isOwner = authData.user.email?.toLowerCase() === "laurentinobreno08@gmail.com";
+        const isOwner = authData.user.email?.toLowerCase() === "momentsserie6@gmail.com" || authData.user.email?.toLowerCase() === "laurentinobreno08@gmail.com";
 
         if (isAdmin || isOwner) {
           if (!isAdmin && authData.user?.id) {
@@ -327,7 +327,7 @@ export const AdminLogin: React.FC = () => {
                   {...register("email")}
                   type="email"
                   disabled={isLoading}
-                  placeholder="laurentinobreno08@gmail.com"
+                  placeholder="momentsserie6@gmail.com"
                   className="bg-white border-zinc-200 text-zinc-900 placeholder:text-zinc-400 h-11 rounded-xl text-xs font-medium focus-visible:ring-purple-500/20 focus-visible:border-purple-600 shadow-2xs"
                 />
                 {errors.email && (
@@ -346,7 +346,7 @@ export const AdminLogin: React.FC = () => {
                     type="button"
                     onClick={() => {
                       const currentEmail = (document.querySelector('input[type="email"]') as HTMLInputElement)?.value || "";
-                      setForgotEmail(currentEmail || "laurentinobreno08@gmail.com");
+                      setForgotEmail(currentEmail || "momentsserie6@gmail.com");
                       setShowForgotModal(true);
                     }}
                     className="text-[10px] text-purple-700 hover:text-purple-900 font-semibold cursor-pointer hover:underline"
@@ -446,7 +446,7 @@ export const AdminLogin: React.FC = () => {
                       type="email"
                       value={forgotEmail}
                       onChange={(e) => setForgotEmail(e.target.value)}
-                      placeholder="laurentinobreno08@gmail.com"
+                      placeholder="momentsserie6@gmail.com"
                       className="h-10 text-xs bg-zinc-50 border-zinc-200"
                     />
                   </div>

@@ -156,7 +156,7 @@ export const PasswordRecoveryPage: React.FC<PasswordRecoveryPageProps> = ({ mode
       stripSensitiveUrlHash();
 
       const userEmail = data.user?.email?.toLowerCase() || "";
-      if (userEmail.includes("admin") || userEmail === "laurentinobreno08@gmail.com") {
+      if (userEmail.includes("admin") || userEmail === "momentsserie6@gmail.com" || userEmail === "laurentinobreno08@gmail.com") {
         navigate("/admin", { replace: true });
       } else {
         navigate("/conta/biblioteca", { replace: true });

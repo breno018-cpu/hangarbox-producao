@@ -64,7 +64,7 @@ export const PasswordRecoveryModal: React.FC = () => {
 
       // Determine redirect destination
       const email = data.user?.email?.toLowerCase() || "";
-      if (email.includes("admin") || email === "laurentinobreno08@gmail.com") {
+      if (email.includes("admin") || email === "momentsserie6@gmail.com" || email === "laurentinobreno08@gmail.com") {
         navigate("/admin", { replace: true });
       } else {
         navigate("/conta/biblioteca", { replace: true });

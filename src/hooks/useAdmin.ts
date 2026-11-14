@@ -79,7 +79,7 @@ export function useAdmin() {
 
       if (currentUser) {
         const hasAdmin = await verifyRole(currentUser.id);
-        const isOwner = currentUser.email?.toLowerCase() === "laurentinobreno08@gmail.com";
+        const isOwner = currentUser.email?.toLowerCase() === "momentsserie6@gmail.com" || currentUser.email?.toLowerCase() === "laurentinobreno08@gmail.com";
         if (hasAdmin || isOwner) {
           if (!hasAdmin && currentUser.id) {
             try {
@@ -136,7 +136,7 @@ export function useAdmin() {
         const u = session?.user ?? null;
         if (u) {
           const hasAdmin = await verifyRole(u.id);
-          const isOwner = u.email?.toLowerCase() === "laurentinobreno08@gmail.com";
+          const isOwner = u.email?.toLowerCase() === "momentsserie6@gmail.com" || u.email?.toLowerCase() === "laurentinobreno08@gmail.com";
           if (hasAdmin || isOwner) {
             sessionStorage.setItem(SESSION_CACHE_KEY, "admin");
             localStorage.setItem(LOCAL_SESSION_KEY, "admin");
